@@ -58,7 +58,11 @@
 extern TIM_HandleTypeDef htim6;
 extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
-
+extern SPI_HandleTypeDef hspi1;
+extern RTC_HandleTypeDef hrtc;
+extern I2C_HandleTypeDef hi2c1;
+extern GPIO_PinState end_of_flash;
+extern GPIO_PinState *end_of_flash_ptr;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -223,10 +227,108 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+  uint8_t accel_data[6];
+  readAccelerometer(accel_data, &hi2c1);
 
+  uint32_t time = getTimestampMilliseconds(&hrtc);
+
+  // Store the time in the buffer
+  if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
+ 	  data_buffer[byte_tracker + 0] = (uint8_t) ((time >> 24) & 0xFF); // Most significant byte (MSB)
+ 	  data_buffer[byte_tracker + 1] = (uint8_t) ((time >> 16) & 0xFF);
+ 	  data_buffer[byte_tracker + 2] = (uint8_t) ((time >> 8) & 0xFF);
+ 	  data_buffer[byte_tracker + 3] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
+
+ 	  uint8_t array_ptr = 4;
+ 	  for (int i = 0; i < 6; i++) {
+ 		  data_buffer[byte_tracker + array_ptr] = accel_data[i];
+ 		  array_ptr += 1;
+ 	  }
+ 	  byte_tracker = byte_tracker + 10;
+  }
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	// Read the received data
+	uint8_t received_data = huart2.Instance->DR;
 
+	// Check if the received data matches the expected value (0x68 = 'h')
+	if (received_data == 0x68) {
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
+		send_uart_string(huart, "**Heartbeat**\r\n");					// Transmit the data
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_RESET);	// Deactivate the "write out" LED
+	}
+
+	// Check if the received data matches the expected value (0x65 = 'e')
+	else if (received_data == 0x65) {
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
+		if (erase_chip_spi(&hspi1) == HAL_OK) {
+			send_uart_string(huart, "Successful Chip Erase\r\n");
+			next_blank_page = find_next_blank_page(&hspi1, huart, &end_of_flash);
+		} else {
+			send_uart_string(huart, "Error during chip erase. Please check the connection and try again.\r\n");
+		}
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_RESET);	// Deactivate the "write out" LED
+	}
+
+	// Check if the received data matches the expected value (0x72 = 'r')
+	else if (received_data == 0x72) {
+		uint32_t num_of_pages = next_blank_page;
+		if(num_of_pages == 0) {
+			num_of_pages = PAGE_SIZE;
+		}
+		num_of_pages = num_of_pages/PAGE_SIZE;
+		uint32_t address = 0;
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
+
+		for (int i = 0; i < (num_of_pages); i++) {
+			uint8_t page[PAGE_SIZE];
+			read_page_spi(page, &hspi1, address);//
+			uart_transmit_page(huart, page);						// Transmit the data//
+			address += PAGE_SIZE;
+		}
+
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_RESET);	// Deactivate the "write out" LED
+	}
+
+/************************************************************************************
+	// Read Manufacturer over SPI (data_rx = "m")
+	else if (received_data == 0x6d) {
+		uint8_t manu[2] = {0, 0};
+		read_manufacturer_id(manu, &hspi3);
+		HAL_UART_Transmit(&huart3, manu, 2, HAL_MAX_DELAY);
+	}
+
+	// Read Accelerometer CTRL4 (data_rx = "c")
+	else if (received_data == 0x63) {
+		uint8_t ctrl = readAccel_ctrl_rg1(&hi2c1);
+		HAL_UART_Transmit(&huart3, &ctrl, 1, HAL_MAX_DELAY);
+	}
+
+	// Write a page over SPI (data_rx = "w")
+	else if (received_data == 0x77) {
+		uint8_t data_out[PAGE_SIZE];
+		for (int i = 0; i < PAGE_SIZE; i++) {
+			data_out[i] = 0x77;
+		}
+
+		write_data_spi(data_out, GPIO_PIN_SET, &hspi3, next_blank_page);
+
+		next_blank_page += PAGE_SIZE;
+	}
+
+	// Read the accelerometer and print to the UART (data_rx = "a")
+	else if (received_data == 0x61) {
+		uint16_t readings[3];
+		readAccelerometer(readings, &hi2c1);
+		for (int i = 0; i < 3; i++) {
+			send_uart_int(&huart3, readings[i]);
+		}
+	}
+************************************************************************************/
+
+	HAL_UART_Receive_IT(&huart2, UARTRxData, 1);
+}
 /* USER CODE END 1 */

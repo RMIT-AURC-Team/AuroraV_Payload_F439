@@ -1,0 +1,4 @@
+../Core/Src/data_read_spi.c:10:9:check_status_register	1
+../Core/Src/data_read_spi.c:21:10:find_next_blank_page	5
+../Core/Src/data_read_spi.c:63:6:read_page_spi	2
+../Core/Src/data_read_spi.c:89:6:read_manufacturer_id	2

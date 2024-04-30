@@ -51,7 +51,12 @@ TIM_HandleTypeDef htim6;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+uint8_t UARTRxData[1];
+uint8_t data_buffer[PAGE_SIZE];
+uint32_t next_blank_page;
+uint16_t byte_tracker;
+GPIO_PinState end_of_flash;
+GPIO_PinState *end_of_flash_ptr;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,7 +110,19 @@ int main(void)
   MX_TIM6_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+	byte_tracker = 0;
+	end_of_flash = GPIO_PIN_SET;
+	clean_data_buffer();
+	initialise_rtc_default(&hrtc);
+	init_accel(&hi2c1);
+	HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET);		// SET SPI CS High to disable bus
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);	// Turn LED off
+	next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
+	// Advance erase 32k
+	erase_32k_spi(&hspi1, next_blank_page);
+	uint32_t next_erase_page = next_blank_page + (100 * PAGE_SIZE);
+	HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -115,7 +132,38 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	// If at the end of the data buffer, write the page out
+	if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
+		GPIO_PinState flight_mode = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
+		if((flight_mode & end_of_flash) == GPIO_PIN_SET) {
+			// Disable interrupts briefly
+			HAL_UART_AbortReceive_IT(&huart2); // Disable UART receive interrupt
+			HAL_TIM_Base_Stop_IT(&htim6); // Disable timer interrupt
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Toggle LED when writing data
+			write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page);
+			next_blank_page += PAGE_SIZE;
+
+			// Renenable interrupts
+		  HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
+		  HAL_TIM_Base_Start_IT(&htim6);
+
+			if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+				next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
+			}
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Toggle LED when writing data
+		}
+		byte_tracker = 0;
+		clean_data_buffer();
+	}
+
+	if(next_blank_page == next_erase_page) {
+		  erase_32k_spi(&hspi1, next_blank_page);
+		  next_erase_page = next_blank_page + (100 * PAGE_SIZE);
+	}
+
   }
+
   /* USER CODE END 3 */
 }
 
@@ -300,9 +348,9 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 0;
+  htim6.Init.Prescaler = 15999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 65535;
+  htim6.Init.Period = 1000;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -383,7 +431,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : SPI2_WP_Pin */
   GPIO_InitStruct.Pin = SPI2_WP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(SPI2_WP_GPIO_Port, &GPIO_InitStruct);
 
@@ -412,7 +460,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : SPI2_CS_Pin */
   GPIO_InitStruct.Pin = SPI2_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(SPI2_CS_GPIO_Port, &GPIO_InitStruct);
 
@@ -426,7 +474,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : SPI1_WP_Pin SPI1_CS_Pin */
   GPIO_InitStruct.Pin = SPI1_WP_Pin|SPI1_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
@@ -451,7 +499,11 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void clean_data_buffer() {
+    for (int i = 0; i < PAGE_SIZE; ++i) {
+        data_buffer[i] = 0xFF;  // Initialize each element to 0xFF
+    }
+}
 /* USER CODE END 4 */
 
 /**

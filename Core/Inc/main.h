@@ -31,7 +31,12 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "data_management.h"
+#include "rtc.h"
+#include "uart_transmit.h"
+#include "data_read_spi.h"
+#include "data_output_spi.h"
+#include "accelerometer.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -41,7 +46,12 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern uint8_t UARTRxData[1];
+extern uint8_t data_buffer[PAGE_SIZE];
+extern uint32_t next_blank_page;
+extern uint16_t byte_tracker;
+extern GPIO_PinState end_of_flash;
+extern GPIO_PinState *end_of_flash_ptr;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -73,7 +83,7 @@ void Error_Handler(void);
 #define LED2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+void clean_data_buffer();
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

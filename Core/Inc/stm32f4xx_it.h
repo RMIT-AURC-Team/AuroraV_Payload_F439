@@ -27,7 +27,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
+#include "uart_transmit.h"
+#include "data_management.h"
+#include "data_output_spi.h"
+#include "accelerometer.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
