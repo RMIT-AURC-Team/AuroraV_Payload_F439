@@ -61,6 +61,7 @@ extern UART_HandleTypeDef huart2;
 extern SPI_HandleTypeDef hspi1;
 extern RTC_HandleTypeDef hrtc;
 extern I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c2;
 extern GPIO_PinState end_of_flash;
 extern GPIO_PinState *end_of_flash_ptr;
 /* USER CODE END EV */
@@ -77,7 +78,7 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-   while (1)
+  while (1)
   {
   }
   /* USER CODE END NonMaskableInt_IRQn 1 */
@@ -227,6 +228,8 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+
   uint8_t accel_data[6];
   readAccelerometer(accel_data, &hi2c1);
 
@@ -234,17 +237,17 @@ void TIM6_DAC_IRQHandler(void)
 
   // Store the time in the buffer
   if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
- 	  data_buffer[byte_tracker + 0] = (uint8_t) ((time >> 24) & 0xFF); // Most significant byte (MSB)
- 	  data_buffer[byte_tracker + 1] = (uint8_t) ((time >> 16) & 0xFF);
- 	  data_buffer[byte_tracker + 2] = (uint8_t) ((time >> 8) & 0xFF);
- 	  data_buffer[byte_tracker + 3] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
+    data_buffer[byte_tracker + 0] = (uint8_t) ((time >> 24) & 0xFF); // Most significant byte (MSB)
+    data_buffer[byte_tracker + 1] = (uint8_t) ((time >> 16) & 0xFF);
+    data_buffer[byte_tracker + 2] = (uint8_t) ((time >> 8) & 0xFF);
+    data_buffer[byte_tracker + 3] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
 
- 	  uint8_t array_ptr = 4;
- 	  for (int i = 0; i < 6; i++) {
- 		  data_buffer[byte_tracker + array_ptr] = accel_data[i];
- 		  array_ptr += 1;
- 	  }
- 	  byte_tracker = byte_tracker + 10;
+    uint8_t array_ptr = 4;
+    for (int i = 0; i < 6; i++) {
+      data_buffer[byte_tracker + array_ptr] = accel_data[i];
+      array_ptr += 1;
+    }
+    byte_tracker = byte_tracker + 10;
   }
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
@@ -257,7 +260,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	// Check if the received data matches the expected value (0x68 = 'h')
 	if (received_data == 0x68) {
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
-		send_uart_string(huart, "**Heartbeat**\r\n");					// Transmit the data
+		send_uart_string(huart, "**Heartbeat**\r\n");			// Transmit the data
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_RESET);	// Deactivate the "write out" LED
 	}
 
@@ -301,12 +304,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		HAL_UART_Transmit(&huart3, manu, 2, HAL_MAX_DELAY);
 	}
 
-	// Read Accelerometer CTRL4 (data_rx = "c")
-	else if (received_data == 0x63) {
-		uint8_t ctrl = readAccel_ctrl_rg1(&hi2c1);
-		HAL_UART_Transmit(&huart3, &ctrl, 1, HAL_MAX_DELAY);
-	}
-
 	// Write a page over SPI (data_rx = "w")
 	else if (received_data == 0x77) {
 		uint8_t data_out[PAGE_SIZE];
@@ -318,16 +315,28 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 		next_blank_page += PAGE_SIZE;
 	}
+************************************************************************************/
+	// Read Accelerometer CTRL4 (data_rx = "c")
+	else if (received_data == 0x63) {
+		uint8_t ctrl = readAccel_ctrl_rg1(&hi2c1);
+		HAL_UART_Transmit(&huart2, &ctrl, 1, HAL_MAX_DELAY);
+	}
 
 	// Read the accelerometer and print to the UART (data_rx = "a")
 	else if (received_data == 0x61) {
-		uint16_t readings[3];
+		uint8_t readings[6];
 		readAccelerometer(readings, &hi2c1);
-		for (int i = 0; i < 3; i++) {
-			send_uart_int(&huart3, readings[i]);
+		for (int i = 0; i < 6; i++) {
+			send_uart_hex(&huart2, readings[i]);
 		}
 	}
-************************************************************************************/
+
+	// Read the temp sensor and print to the UART (data_rx = "t")
+	else if (received_data == 0x74) {
+		uint8_t reading = readBME280_id_reg(&hi2c2);
+		send_uart_hex(&huart2, reading);
+	}
+
 
 	HAL_UART_Receive_IT(&huart2, UARTRxData, 1);
 }

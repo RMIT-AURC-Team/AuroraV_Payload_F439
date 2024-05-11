@@ -24,3 +24,9 @@ void send_uart_int(UART_HandleTypeDef *huart, uint32_t value) {
 	send_uart_string(huart, value_str);
 	send_uart_string(huart, "\r\n");
 }
+
+void send_uart_hex(UART_HandleTypeDef *huart, uint8_t value) {
+	uint8_t buffer[1];
+	buffer[0] = value;
+	HAL_UART_Transmit(huart, buffer, 1, HAL_MAX_DELAY);
+}

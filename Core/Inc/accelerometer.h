@@ -10,8 +10,8 @@
 
 #include "stm32f4xx_hal.h"
 
-#define MASK_1kHz 0x38
-#define MASK_24G 0x30
+#define MASK_1kHz 0x3F
+#define MASK_100G 0x00
 
 extern const uint8_t H3LIS331HH_ADDR;		// 7bit device address
 extern uint8_t CTRL_REG1;

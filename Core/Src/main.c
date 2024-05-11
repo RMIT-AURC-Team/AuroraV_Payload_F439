@@ -41,6 +41,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
 
 RTC_HandleTypeDef hrtc;
 
@@ -67,6 +68,7 @@ static void MX_RTC_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_I2C2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -109,20 +111,29 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM6_Init();
   MX_USART2_UART_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
-	byte_tracker = 0;
-	end_of_flash = GPIO_PIN_SET;
-	clean_data_buffer();
-	initialise_rtc_default(&hrtc);
-	init_accel(&hi2c1);
-	HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET);		// SET SPI CS High to disable bus
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);	// Turn LED off
-	next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
-	// Advance erase 32k
-	erase_32k_spi(&hspi1, next_blank_page);
-	uint32_t next_erase_page = next_blank_page + (100 * PAGE_SIZE);
-	HAL_TIM_Base_Start_IT(&htim6);
+  HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);	// Turn LED off
+  HAL_TIM_Base_Start_IT(&htim6);
+  byte_tracker = 0;
+  end_of_flash = GPIO_PIN_SET;
+  clean_data_buffer();
+  initialise_rtc_default(&hrtc);
+  init_accel(&hi2c1);
+  init_bme280(&hi2c2);
+  HAL_UART_Receive_IT(&huart2, UARTRxData,1);				// Initiate the UART Receive interrupt
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET);		// SET SPI CS High to disable bus
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Turn LED off
+
+  /**
+  next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
+  // Advance erase 32k
+  erase_32k_spi(&hspi1, next_blank_page);
+  **/
+
+  uint32_t next_erase_page = next_blank_page + (100 * PAGE_SIZE);
+  HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -132,38 +143,35 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    // If at the end of the data buffer, write the page out
+    if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
+      GPIO_PinState flight_mode = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
+      if((flight_mode & end_of_flash) == GPIO_PIN_SET) {
+        // Disable interrupts briefly
+        HAL_UART_AbortReceive_IT(&huart2); // Disable UART receive interrupt
+        HAL_TIM_Base_Stop_IT(&htim6); // Disable timer interrupt
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Toggle LED when writing data
+        write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page);
+        next_blank_page += PAGE_SIZE;
 
-	// If at the end of the data buffer, write the page out
-	if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
-		GPIO_PinState flight_mode = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
-		if((flight_mode & end_of_flash) == GPIO_PIN_SET) {
-			// Disable interrupts briefly
-			HAL_UART_AbortReceive_IT(&huart2); // Disable UART receive interrupt
-			HAL_TIM_Base_Stop_IT(&htim6); // Disable timer interrupt
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Toggle LED when writing data
-			write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page);
-			next_blank_page += PAGE_SIZE;
+        // Renenable interrupts
+        HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
+        HAL_TIM_Base_Start_IT(&htim6);
 
-			// Renenable interrupts
-		  HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
-		  HAL_TIM_Base_Start_IT(&htim6);
+        if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+          next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
+        }
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Toggle LED when writing data
+      }
+      byte_tracker = 0;
+      clean_data_buffer();
+    }
 
-			if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
-				next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
-			}
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Toggle LED when writing data
-		}
-		byte_tracker = 0;
-		clean_data_buffer();
-	}
-
-	if(next_blank_page == next_erase_page) {
-		  erase_32k_spi(&hspi1, next_blank_page);
-		  next_erase_page = next_blank_page + (100 * PAGE_SIZE);
-	}
-
+    if(next_blank_page == next_erase_page) {
+      erase_32k_spi(&hspi1, next_blank_page);
+      next_erase_page = next_blank_page + (100 * PAGE_SIZE);
+    }
   }
-
   /* USER CODE END 3 */
 }
 
@@ -254,6 +262,54 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 100000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
 
 }
 
@@ -448,14 +504,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(JMP_Flight_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB10 PB11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SPI2_CS_Pin */
   GPIO_InitStruct.Pin = SPI2_CS_Pin;

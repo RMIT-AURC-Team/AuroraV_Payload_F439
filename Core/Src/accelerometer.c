@@ -30,7 +30,7 @@ HAL_StatusTypeDef init_accel(I2C_HandleTypeDef* hi2c) {
 	ret = HAL_I2C_Master_Transmit(hi2c, H3LIS331HH_ADDR, &CTRL_REG4, 1, 100);
 	ret = HAL_I2C_Master_Receive(hi2c, H3LIS331HH_ADDR, &control_reg, 1, 100);
 
-	control_reg = control_reg | MASK_24G;
+	control_reg = control_reg | MASK_100G;
 	uint8_t data2[2] = {CTRL_REG4, control_reg};
 	ret = HAL_I2C_Master_Transmit(hi2c, H3LIS331HH_ADDR, data2, 2, 100);
 

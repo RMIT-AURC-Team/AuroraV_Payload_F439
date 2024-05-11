@@ -37,6 +37,7 @@ extern "C" {
 #include "data_read_spi.h"
 #include "data_output_spi.h"
 #include "accelerometer.h"
+#include "bme280.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

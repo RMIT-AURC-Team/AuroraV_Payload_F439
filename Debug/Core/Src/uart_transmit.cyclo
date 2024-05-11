@@ -1,3 +1,4 @@
 ../Core/Src/uart_transmit.c:12:6:uart_transmit_page	1
 ../Core/Src/uart_transmit.c:16:6:send_uart_string	1
 ../Core/Src/uart_transmit.c:20:6:send_uart_int	1
+../Core/Src/uart_transmit.c:28:6:send_uart_hex	1

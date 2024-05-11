@@ -1,4 +1,5 @@
 "./Core/Src/accelerometer.o"
+"./Core/Src/bme280.o"
 "./Core/Src/data_management.o"
 "./Core/Src/data_output_spi.o"
 "./Core/Src/data_read_spi.o"
