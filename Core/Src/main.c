@@ -121,7 +121,8 @@ int main(void)
   clean_data_buffer();
   initialise_rtc_default(&hrtc);
   init_accel(&hi2c1);
-  init_bme280(&hi2c2);
+  init_bme280(&hi2c2, 0);
+//  init_bme280(&hi2c2, 1);
   HAL_UART_Receive_IT(&huart2, UARTRxData,1);				// Initiate the UART Receive interrupt
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET);		// SET SPI CS High to disable bus
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Turn LED off

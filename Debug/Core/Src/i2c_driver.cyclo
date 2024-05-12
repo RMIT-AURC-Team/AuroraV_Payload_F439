@@ -1,0 +1,2 @@
+../Core/Src/i2c_driver.c:10:9:i2c_read_reg	1
+../Core/Src/i2c_driver.c:17:19:i2c_write_reg	1

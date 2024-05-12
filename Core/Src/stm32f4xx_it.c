@@ -316,9 +316,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		next_blank_page += PAGE_SIZE;
 	}
 ************************************************************************************/
-	// Read Accelerometer CTRL4 (data_rx = "c")
+	// Read Accelerometer CTRL1 (data_rx = "c")
 	else if (received_data == 0x63) {
-		uint8_t ctrl = readAccel_ctrl_rg1(&hi2c1);
+		uint8_t ctrl = readAccel_whoami(&hi2c1);
 		HAL_UART_Transmit(&huart2, &ctrl, 1, HAL_MAX_DELAY);
 	}
 
@@ -333,7 +333,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 	// Read the temp sensor and print to the UART (data_rx = "t")
 	else if (received_data == 0x74) {
-		uint8_t reading = readBME280_id_reg(&hi2c2);
+		uint8_t reading = readBME280_id_reg(&hi2c2, 0);
 		send_uart_hex(&huart2, reading);
 	}
 
