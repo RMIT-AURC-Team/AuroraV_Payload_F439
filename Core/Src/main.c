@@ -160,7 +160,7 @@ int main(void)
         HAL_TIM_Base_Start_IT(&htim6);
 
         if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
-          next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
+          next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash, 0);
         }
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Toggle LED when writing data
       }

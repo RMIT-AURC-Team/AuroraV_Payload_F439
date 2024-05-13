@@ -1,0 +1,3 @@
+../Core/Src/spi_driver.c:13:9:spi_sendOp_readByte	1
+../Core/Src/spi_driver.c:25:6:perform_operation	1
+../Core/Src/spi_driver.c:34:6:spi_read_data	1

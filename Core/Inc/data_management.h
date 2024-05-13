@@ -8,6 +8,7 @@
 #ifndef INC_DATA_MANAGEMENT_H_
 #define INC_DATA_MANAGEMENT_H_
 #include "stm32f4xx_hal.h"
+#include "spi_driver.h"
 #include <stdlib.h>
 
 #define PAGE_SIZE 		256 			// 2048 bits
@@ -24,5 +25,12 @@ extern uint8_t FLASH_32K_ERS;		// Erase all memory within a 32K-byte block
 extern uint8_t FLASH_ERASE;			// Erase the entire chip
 
 extern uint8_t data_buffer[PAGE_SIZE];
+
+typedef struct {
+    GPIO_TypeDef* GPIOx;
+    uint16_t GPIO_Pin_CS;
+} GPIO_Config;
+
+GPIO_Config getGPIOConfig(uint8_t flashNo);
 
 #endif /* INC_DATA_MANAGEMENT_H_ */

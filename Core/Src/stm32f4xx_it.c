@@ -269,7 +269,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
 		if (erase_chip_spi(&hspi1) == HAL_OK) {
 			send_uart_string(huart, "Successful Chip Erase\r\n");
-			next_blank_page = find_next_blank_page(&hspi1, huart, &end_of_flash);
+			next_blank_page = find_next_blank_page(&hspi1, huart, &end_of_flash, 0);
 		} else {
 			send_uart_string(huart, "Error during chip erase. Please check the connection and try again.\r\n");
 		}
@@ -288,7 +288,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 		for (int i = 0; i < (num_of_pages); i++) {
 			uint8_t page[PAGE_SIZE];
-			read_page_spi(page, &hspi1, address);//
+			read_page_spi(page, &hspi1, address, 0);//
 			uart_transmit_page(huart, page);						// Transmit the data//
 			address += PAGE_SIZE;
 		}

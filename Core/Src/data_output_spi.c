@@ -12,7 +12,7 @@ HAL_StatusTypeDef erase_chip_spi(SPI_HandleTypeDef *hspi) {
 
 	uint8_t busy = 0x01;
 	while(busy) {
-		busy = (check_status_register(hspi) & 0x01);	// Check if there is a write in progress
+		busy = (check_status_register(hspi, 0) & 0x01);	// Check if there is a write in progress
 	}
 
 	write_enable_spi(hspi);
@@ -23,7 +23,7 @@ HAL_StatusTypeDef erase_chip_spi(SPI_HandleTypeDef *hspi) {
 
 	busy = 0x01;
 	while(busy) {
-		busy = (check_status_register(hspi) & 0x01);	// Check if there is a write in progress
+		busy = (check_status_register(hspi, 0) & 0x01);	// Check if there is a write in progress
 	}
 
     // Return the status (HAL_OK for success, HAL_ERROR for failure)
@@ -74,7 +74,7 @@ uint8_t write_data_spi(uint8_t page[PAGE_SIZE], GPIO_PinState flight_mode, SPI_H
 
 		uint8_t busy = 0x01;
 		while(busy) {
-			busy = (check_status_register(hspi) & 0x01);	// Check if there is a write in progress
+			busy = (check_status_register(hspi, 0) & 0x01);	// Check if there is a write in progress
 		}
 
 		// Send the write enable signal

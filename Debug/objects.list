@@ -6,6 +6,7 @@
 "./Core/Src/i2c_driver.o"
 "./Core/Src/main.o"
 "./Core/Src/rtc.o"
+"./Core/Src/spi_driver.o"
 "./Core/Src/stm32f4xx_hal_msp.o"
 "./Core/Src/stm32f4xx_it.o"
 "./Core/Src/syscalls.o"
