@@ -129,11 +129,8 @@ int main(void)
 
   /**
   next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash);
-  // Advance erase 32k
-  erase_32k_spi(&hspi1, next_blank_page);
   **/
 
-  uint32_t next_erase_page = next_blank_page + (100 * PAGE_SIZE);
   HAL_TIM_Base_Start_IT(&htim6);
   /* USER CODE END 2 */
 
@@ -152,7 +149,7 @@ int main(void)
         HAL_UART_AbortReceive_IT(&huart2); // Disable UART receive interrupt
         HAL_TIM_Base_Stop_IT(&htim6); // Disable timer interrupt
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Toggle LED when writing data
-        write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page);
+        write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page, 0);
         next_blank_page += PAGE_SIZE;
 
         // Renenable interrupts
@@ -166,11 +163,6 @@ int main(void)
       }
       byte_tracker = 0;
       clean_data_buffer();
-    }
-
-    if(next_blank_page == next_erase_page) {
-      erase_32k_spi(&hspi1, next_blank_page);
-      next_erase_page = next_blank_page + (100 * PAGE_SIZE);
     }
   }
   /* USER CODE END 3 */

@@ -9,7 +9,7 @@
 
 uint8_t check_status_register(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
 	GPIO_Config config = getGPIOConfig(flashNo);
-	return spi_sendOp_readByte(FLASH_READSR1, hspi, config.GPIOx, config.GPIO_Pin_CS);
+	return spi_sendOp_readByte(&FLASH_READSR1, hspi, config.GPIOx, config.GPIO_Pin_CS);
 }
 
 uint32_t find_next_blank_page(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_PinState *end_of_flash_ptr, uint8_t flashNo) {
@@ -33,7 +33,7 @@ uint32_t find_next_blank_page(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart
 			busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
 		}
 
-		spi_read_data(FLASH_READEN, firstBytes, page_start, hspi, page_address, config.GPIOx, config.GPIO_Pin_CS);
+		spi_read_data(&FLASH_READEN, firstBytes, page_start, hspi, page_address, config.GPIOx, config.GPIO_Pin_CS);
 
 		page_start_concat = (page_start[0] << 24) | (page_start[1] << 16) | (page_start[2] << 8) | page_start[3];
 		temp += PAGE_SIZE;
@@ -54,7 +54,7 @@ void read_page_spi(uint8_t data_read[PAGE_SIZE], SPI_HandleTypeDef *hspi, uint32
 		busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
 	}
 
-	spi_read_data(FLASH_READEN, PAGE_SIZE, data_read, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
+	spi_read_data(&FLASH_READEN, PAGE_SIZE, data_read, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
 }
 
 void read_manufacturer_id(uint8_t manu[2], SPI_HandleTypeDef *hspi, uint8_t flashNo) {
@@ -70,5 +70,5 @@ void read_manufacturer_id(uint8_t manu[2], SPI_HandleTypeDef *hspi, uint8_t flas
 
 	// Read the entire contents of a page starting from the given address
 	// Split the 24 bit address into three 8 bit ints
-	spi_read_data(FLASH_READ_MANU, 2, manu, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
+	spi_read_data(&FLASH_READ_MANU, 2, manu, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
 }

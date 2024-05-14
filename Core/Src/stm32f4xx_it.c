@@ -267,7 +267,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	// Check if the received data matches the expected value (0x65 = 'e')
 	else if (received_data == 0x65) {
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
-		if (erase_chip_spi(&hspi1) == HAL_OK) {
+		if (erase_chip_spi(&hspi1, 0) == HAL_OK) {
 			send_uart_string(huart, "Successful Chip Erase\r\n");
 			next_blank_page = find_next_blank_page(&hspi1, huart, &end_of_flash, 0);
 		} else {
