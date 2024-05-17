@@ -25,8 +25,8 @@ extern uint8_t OUT_Y_H;
 extern uint8_t OUT_Z_L;
 extern uint8_t OUT_Z_H;
 
-void readAccelerometer(uint8_t values[6], I2C_HandleTypeDef* hi2c);
 HAL_StatusTypeDef init_accel(I2C_HandleTypeDef* hi2c);
 uint8_t readAccel_whoami(I2C_HandleTypeDef* hi2c);
+void readAccelerometer(uint8_t values[6], I2C_HandleTypeDef* hi2c);
 
 #endif /* INC_ACCELEROMETER_H_ */

@@ -228,7 +228,21 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+
+  /*******************************
+	*
+	*/
   HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
+  uint8_t cnt = 6;
+  uint8_t readings[cnt];
+//  readAccelerometer(readings, &hi2c1);
+  readTempHumPres(readings, &hi2c2, 0);
+  for (int i = 0; i < cnt; i++) {
+	  send_uart_hex(&huart2, readings[i]);
+  }
+  /***************************
+   *
+   */
 
   uint8_t accel_data[6];
   readAccelerometer(accel_data, &hi2c1);
@@ -335,6 +349,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	else if (received_data == 0x74) {
 		uint8_t reading = readBME280_id_reg(&hi2c2, 0);
 		send_uart_hex(&huart2, reading);
+	}
+
+	// Read the temp sensor calibration registers and print to the UART (data_rx = "p")
+	else if (received_data == 0x70) {
+		uint8_t calibration1[25];
+		uint8_t calibration2[7];
+		readBME280_calib(&hi2c2, 0, calibration1, calibration2);
+		for (int i = 0; i < 25; i++) {
+		  send_uart_hex(&huart2, calibration1[i]);
+		}
+
+		for (int i = 0; i < 7; i++) {
+		  send_uart_hex(&huart2, calibration2[i]);
+		}
 	}
 
 

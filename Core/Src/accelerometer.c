@@ -26,32 +26,11 @@ HAL_StatusTypeDef init_accel(I2C_HandleTypeDef* hi2c) {
 
 	// Write Control Register 4
 	ret = i2c_write_reg(hi2c, H3LIS331DL_ADDR, &CTRL_REG4, MASK_100G);
-
 	return ret;
 }
 
 void readAccelerometer(uint8_t values[6], I2C_HandleTypeDef* hi2c) {
-	uint8_t buf_x[2];
-	uint8_t buf_y[2];
-	uint8_t buf_z[2];
-
-	// Read X-Axis
-	buf_x[0] = i2c_read_reg(hi2c, H3LIS331DL_ADDR, &OUT_X_L);
-	buf_x[1] = i2c_read_reg(hi2c, H3LIS331DL_ADDR, &OUT_X_H);
-
-	// Read Y-Axis
-	buf_y[0] = i2c_read_reg(hi2c, H3LIS331DL_ADDR, &OUT_Y_L);
-	buf_y[1] = i2c_read_reg(hi2c, H3LIS331DL_ADDR, &OUT_Y_H);
-
-	// Read Z-Axis
-	buf_z[0] = i2c_read_reg(hi2c, H3LIS331DL_ADDR, &OUT_Z_L);
-	buf_z[1] = i2c_read_reg(hi2c, H3LIS331DL_ADDR, &OUT_Z_H);
-
-	for (int i = 0; i < 2; i++) {
-		values[i] = buf_x[i];
-		values[i+2] = buf_y[i];
-		values[i+4] = buf_z[i];
-	}
+	i2c_burst_read(hi2c, H3LIS331DL_ADDR, OUT_X_L, 6, values);
 }
 
 uint8_t readAccel_whoami(I2C_HandleTypeDef* hi2c) {
