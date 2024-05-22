@@ -14,7 +14,7 @@
 #define PAGE_SIZE 		256 			// 2048 bits
 #define NUM_OF_PAGES 	65536
 #define BLOCK_32K		256000
-#define READ_SIZE		20
+#define READ_SIZE		24
 extern uint8_t FLASH_WREN;			// Write enable to begin writing data
 extern uint8_t FLASH_WRDIS;			// Write disable to disable writing data
 extern uint8_t FLASH_PGWR;			// Page write to write an entire page out

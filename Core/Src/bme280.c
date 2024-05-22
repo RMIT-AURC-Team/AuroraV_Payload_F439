@@ -74,8 +74,8 @@ uint8_t readBME280_id_reg(I2C_HandleTypeDef* hi2c, uint8_t bme) {
 
 void readBME280_calib(I2C_HandleTypeDef* hi2c, uint8_t bme, uint8_t calibration1[CALIB_CNT_1], uint8_t calibration2[CALIB_CNT_2]) {
 	uint8_t bme_addr = getBME280Config(bme).bme_addr;
-	i2c_burst_read(hi2c, CALIB_ST_1, OUT_PRESS_H, CALIB_CNT_1, calibration1);
-	i2c_burst_read(hi2c, CALIB_ST_2, OUT_PRESS_H, CALIB_CNT_2, calibration2);
+	i2c_burst_read(hi2c, bme_addr, CALIB_ST_1, CALIB_CNT_1, calibration1);
+	i2c_burst_read(hi2c, bme_addr, CALIB_ST_2, CALIB_CNT_2, calibration2);
 }
 
 BME280_Config getBME280Config(uint8_t bme) {

@@ -49,6 +49,9 @@ extern "C" {
 /* USER CODE BEGIN EC */
 extern uint8_t UARTRxData[1];
 extern uint8_t data_buffer[PAGE_SIZE];
+extern uint8_t accel_data[6];
+extern uint8_t bme280_data_1[8];
+extern uint8_t bme280_data_2[8];
 extern uint32_t next_blank_page;
 extern uint16_t byte_tracker;
 extern GPIO_PinState end_of_flash;

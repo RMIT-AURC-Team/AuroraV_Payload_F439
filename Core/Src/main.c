@@ -54,6 +54,9 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 uint8_t UARTRxData[1];
 uint8_t data_buffer[PAGE_SIZE];
+uint8_t accel_data[6];
+uint8_t bme280_data_1[8];
+uint8_t bme280_data_2[8];
 uint32_t next_blank_page;
 uint16_t byte_tracker;
 GPIO_PinState end_of_flash;
@@ -142,28 +145,28 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     // If at the end of the data buffer, write the page out
-    if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
-      GPIO_PinState flight_mode = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
-      if((flight_mode & end_of_flash) == GPIO_PIN_SET) {
-        // Disable interrupts briefly
-        HAL_UART_AbortReceive_IT(&huart2); // Disable UART receive interrupt
-        HAL_TIM_Base_Stop_IT(&htim6); // Disable timer interrupt
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Toggle LED when writing data
-        write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page, 0);
-        next_blank_page += PAGE_SIZE;
-
-        // Renenable interrupts
-        HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
-        HAL_TIM_Base_Start_IT(&htim6);
-
-        if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
-          next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash, 0);
-        }
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Toggle LED when writing data
-      }
-      byte_tracker = 0;
-      clean_data_buffer();
-    }
+//    if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
+//      GPIO_PinState flight_mode = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
+//      if((flight_mode & end_of_flash) == GPIO_PIN_SET) {
+//        // Disable interrupts briefly
+//        HAL_UART_AbortReceive_IT(&huart2); // Disable UART receive interrupt
+//        HAL_TIM_Base_Stop_IT(&htim6); // Disable timer interrupt
+//        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Toggle LED when writing data
+//        write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page, 0);
+//        next_blank_page += PAGE_SIZE;
+//
+//        // Renenable interrupts
+//        HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
+//        HAL_TIM_Base_Start_IT(&htim6);
+//
+//        if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+//          next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash, 0);
+//        }
+//        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Toggle LED when writing data
+//      }
+//      byte_tracker = 0;
+//      clean_data_buffer();
+//    }
   }
   /* USER CODE END 3 */
 }
@@ -512,12 +515,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI1_WP_Pin SPI1_CS_Pin */
-  GPIO_InitStruct.Pin = SPI1_WP_Pin|SPI1_CS_Pin;
+  /*Configure GPIO pin : SPI1_WP_Pin */
+  GPIO_InitStruct.Pin = SPI1_WP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_Init(SPI1_WP_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA11 PA12 */
   GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_12;
@@ -526,6 +529,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF9_CAN1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI1_CS_Pin */
+  GPIO_InitStruct.Pin = SPI1_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SPI1_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PD3 */
   GPIO_InitStruct.Pin = GPIO_PIN_3;
