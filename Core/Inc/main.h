@@ -47,7 +47,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-extern uint8_t UARTRxData[1];
+extern uint8_t UARTRxData[2];
 extern uint8_t data_buffer[PAGE_SIZE];
 extern uint8_t accel_data[6];
 extern uint8_t bme280_data_1[8];

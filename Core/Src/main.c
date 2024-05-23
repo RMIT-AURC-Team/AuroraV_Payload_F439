@@ -42,17 +42,13 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
-
 RTC_HandleTypeDef hrtc;
-
 SPI_HandleTypeDef hspi1;
-
 TIM_HandleTypeDef htim6;
-
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint8_t UARTRxData[1];
+uint8_t UARTRxData[2];
 uint8_t data_buffer[PAGE_SIZE];
 uint8_t accel_data[6];
 uint8_t bme280_data_1[8];
@@ -116,7 +112,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
+  HAL_UART_Receive_IT(&huart2, UARTRxData, 2);			// Initiate the UART Receive interrupt
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);	// Turn LED off
   HAL_TIM_Base_Start_IT(&htim6);
   byte_tracker = 0;

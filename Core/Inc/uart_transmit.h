@@ -18,5 +18,4 @@ void send_uart_string(UART_HandleTypeDef *huart, const char *str);
 void send_uart_int(UART_HandleTypeDef *huart, uint32_t value);
 void send_uart_hex(UART_HandleTypeDef *huart, uint8_t value);
 
-
 #endif /* INC_UART_TRANSMIT_H_ */

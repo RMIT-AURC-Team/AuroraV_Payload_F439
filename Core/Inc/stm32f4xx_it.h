@@ -29,10 +29,6 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "main.h"
-#include "uart_transmit.h"
-#include "data_management.h"
-#include "data_output_spi.h"
-#include "accelerometer.h"
 #include "peripheral_driver.h"
 /* USER CODE END Includes */
 
@@ -64,7 +60,7 @@ void SysTick_Handler(void);
 void USART2_IRQHandler(void);
 void TIM6_DAC_IRQHandler(void);
 /* USER CODE BEGIN EFP */
-
+uint8_t decodeASCII(uint8_t asciiVal);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus

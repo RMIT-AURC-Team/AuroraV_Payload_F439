@@ -61,8 +61,6 @@ extern SPI_HandleTypeDef hspi1;
 extern RTC_HandleTypeDef hrtc;
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
-extern GPIO_PinState end_of_flash;
-extern GPIO_PinState *end_of_flash_ptr;
 
 /* USER CODE END EV */
 
@@ -228,105 +226,70 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
-
-  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);
-
-  readAccelerometer(accel_data, &hi2c1);
-  readTempHumPres(bme280_data_1, &hi2c2, 0);
-//  readTempHumPres(bme280_data_2, &hi2c2, 1);
-
-  uint16_t time = getTimestampMilliseconds(&hrtc);
-
-  // Store the time in the buffer
-  if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
-    data_buffer[byte_tracker + 0] = (uint8_t) ((time >> 8) & 0xFF);
-    data_buffer[byte_tracker + 1] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
-
-    uint8_t array_ptr = 4;
-    for (int i = 0; i < 6; i++) {
-      data_buffer[byte_tracker + array_ptr] = accel_data[i];
-      array_ptr += 1;
-    }
-    byte_tracker = byte_tracker + 24;
-  }
+  readAllSensors(&hi2c1, &hi2c2, &hrtc);
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	// Read the received data
-	uint8_t received_data = huart2.Instance->DR;
-
-	// Check if the received data matches the expected value (0x68 = 'h')
-	if (received_data == 0x68) {
+	// Send Heartbeat to UART (data_rx[0] = "h")
+	if (UARTRxData[0] == 0x68) {
 		heartbeatUART(huart);
 	}
 
-	// Check if the received data matches the expected value (0x65 = 'e')
-	else if (received_data == 0x65) {
-		eraseFlashSPI(&hspi1, huart, 0);
+	// Erase specified flash chip (data_rx[0]  = "e")
+	else if (UARTRxData[0] == 0x65) {
+		eraseFlashSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
 	}
 
-	// Check if the received data matches the expected value (0x72 = 'r')
-	else if (received_data == 0x72) {
-		readFlashToUART(&hspi1, huart, 0);
+	// Read data from specified flash chip (data_rx[0] = "r")
+	else if (UARTRxData[0] == 0x72) {
+		readFlashToUART(&hspi1, huart, decodeASCII(UARTRxData[1]));
 	}
 
-	// Read Manufacturer over SPI (data_rx = "m")
-	else if (received_data == 0x6d) {
-		uint8_t manu[2] = {0, 0};
-		read_manufacturer_id(manu, &hspi1, 0);
-		send_uart_hex(&huart2, manu[0]);
-		send_uart_hex(&huart2, manu[1]);
+	// Read Manufacturer over SPI (data_rx[0] = "m")
+	else if (UARTRxData[0] == 0x6d) {
+		readFlashManuSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
 	}
 
-	// Write a page over SPI (data_rx = "w")
-	else if (received_data == 0x77) {
-		uint8_t data_out[PAGE_SIZE];
-		for (int i = 0; i < PAGE_SIZE; i++) {
-			data_out[i] = 0x77;
-		}
-		write_data_spi(data_out, GPIO_PIN_SET, &hspi1, next_blank_page, 0);
-
-		next_blank_page += PAGE_SIZE;
+	// Write a page over SPI (data_rx[0] = "w")
+	else if (UARTRxData[0] == 0x77) {
+		writePageSPI_W(&hspi1, huart, decodeASCII(UARTRxData[1]));
 	}
 
-	// Read Accelerometer CTRL1 (data_rx = "c")
-	else if (received_data == 0x63) {
-		uint8_t ctrl = readAccel_whoami(&hi2c1);
-		HAL_UART_Transmit(&huart2, &ctrl, 1, HAL_MAX_DELAY);
+	// Read Accelerometer WhoAmI (data_rx[0] = "c")
+	else if (UARTRxData[0] == 0x63) {
+		checkAccelWhoAmI(&hi2c1, huart);
 	}
 
-	// Read the accelerometer and print to the UART (data_rx = "a")
-	else if (received_data == 0x61) {
-		uint8_t readings[6];
-		readAccelerometer(readings, &hi2c1);
-		for (int i = 0; i < 6; i++) {
-			send_uart_hex(&huart2, readings[i]);
-		}
+	// Read the accelerometer and print to the UART[0] (data_rx [0] = "a")
+	else if (UARTRxData[0] == 0x61) {
+		accelToUART(huart);
 	}
 
-	// Read the temp sensor and print to the UART (data_rx = "t")
-	else if (received_data == 0x74) {
-		uint8_t reading = readBME280_id_reg(&hi2c2, 0);
-		send_uart_hex(&huart2, reading);
+	// Read the temp sensor ID and print to the UART[0] (data_rx [0]= "b")
+	else if (UARTRxData[0] == 0x62) {
+		readTempSensorID(&hi2c2, huart, decodeASCII(UARTRxData[1]));
 	}
 
-	// Read the temp sensor calibration registers and print to the UART (data_rx = "p")
-	else if (received_data == 0x70) {
-		uint8_t calibration1[25];
-		uint8_t calibration2[7];
-		readBME280_calib(&hi2c2, 0, calibration1, calibration2);
-		for (int i = 0; i < 25; i++) {
-		  send_uart_hex(&huart2, calibration1[i]);
-		}
-
-		for (int i = 0; i < 7; i++) {
-		  send_uart_hex(&huart2, calibration2[i]);
-		}
+	// Read the temp sensor calibration registers and print to the UART (data_rx[0] = "p")
+	else if (UARTRxData[0] == 0x70) {
+		readTempCalibration(&hi2c2, huart, decodeASCII(UARTRxData[1]));
 	}
 
+	// Read the temp sensor and print to the UART[0] (data_rx [0]= "t")
+	else if (UARTRxData[0] == 0x74) {
+		readTempSensor(huart, decodeASCII(UARTRxData[1]));
+	}
 
-	HAL_UART_Receive_IT(&huart2, UARTRxData, 1);
+	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
+}
+
+uint8_t decodeASCII(uint8_t asciiVal) {
+	int returnVal = -1;
+	if ((asciiVal >= 48) && (asciiVal <= 57)) {
+		returnVal = asciiVal - 48;
+	}
+	return returnVal;
 }
 /* USER CODE END 1 */
