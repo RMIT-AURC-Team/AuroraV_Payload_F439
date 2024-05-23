@@ -13,6 +13,9 @@ void heartbeatUART(UART_HandleTypeDef *huart) {
 	send_uart_string(huart, "**Heartbeat**\r\n");			// Transmit the heartbeat
 }
 
+/***************************************************************************************************************
+ * SPI Flash Functions
+ */
 void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo) {
 	if (flashNo == 0 || flashNo == 1) {
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
@@ -26,9 +29,6 @@ void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t f
 	}
 }
 
-/***************************************************************************************************************
- * SPI Flash Functions
- */
 void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo) {
 	uint32_t num_of_pages = next_blank_page;
 	if(num_of_pages == 0) {
@@ -64,6 +64,11 @@ void writePageSPI_W(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t 
 	next_blank_page += PAGE_SIZE;
 
 	send_uart_string(huart, "Successful Page Written\r\n");
+}
+
+void resetSPIFlash(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo) {
+	software_reset(hspi, flashNo);
+	send_uart_string(huart, "Flash Chip Reset\r\n");
 }
 
 /***************************************************************************************************************

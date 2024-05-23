@@ -48,7 +48,18 @@ void write_disable_spi(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
 	perform_operation(&FLASH_WRDIS, hspi, config.GPIOx, config.GPIO_Pin_CS);
 }
 
-uint8_t write_data_spi(uint8_t page[PAGE_SIZE], GPIO_PinState flight_mode, SPI_HandleTypeDef *hspi, int addr, uint8_t flashNo) {
+void software_reset(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
+	GPIO_Config config = getGPIOConfig(flashNo);
+	uint8_t busy = 0x01;
+	while(busy) {
+		busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
+	}
+
+	perform_operation(&RST_EN, hspi, config.GPIOx, config.GPIO_Pin_CS);
+	perform_operation(&DEV_RST, hspi, config.GPIOx, config.GPIO_Pin_CS);
+}
+
+uint8_t write_data_spi(uint8_t page[PAGE_SIZE], GPIO_PinState flight_mode, SPI_HandleTypeDef *hspi, uint32_t addr, uint8_t flashNo) {
 	GPIO_Config config = getGPIOConfig(flashNo);
 	uint8_t exit = EXIT_FAILURE;
 

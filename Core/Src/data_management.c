@@ -14,7 +14,9 @@ uint8_t FLASH_READSR1 	= 0x05;			// Read status register value
 uint8_t FLASH_READEN 	= 0x03;			// Read enable to begin reading data
 uint8_t FLASH_READ_MANU	= 0x90;			// Instruction code to read the manufacturer ID
 uint8_t FLASH_32K_ERS	= 0x52;			// Erase all memory within a 32K-byte block
-uint8_t FLASH_ERASE		= 0x60;			// Erase the entire chip
+uint8_t FLASH_ERASE		= 0xC7;			// Erase the entire chip
+uint8_t RST_EN			= 0x66;			// Reset enable
+uint8_t DEV_RST			= 0x99;			// Reset device
 
 GPIO_Config getGPIOConfig(uint8_t flashNo) {
     GPIO_Config config;

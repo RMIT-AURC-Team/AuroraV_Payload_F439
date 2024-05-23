@@ -69,6 +69,5 @@ void read_manufacturer_id(uint8_t manu[2], SPI_HandleTypeDef *hspi, uint8_t flas
 	uint8_t addr = 0x00;
 
 	// Read the entire contents of a page starting from the given address
-	// Split the 24 bit address into three 8 bit ints
 	spi_read_data(&FLASH_READ_MANU, 2, manu, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
 }

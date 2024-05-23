@@ -25,6 +25,7 @@ void readTempSensorID(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uint8_
 void readTempCalibration(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uint8_t tempNo);
 void readTempSensor(UART_HandleTypeDef *huart, uint8_t tempNo);
 void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp, RTC_HandleTypeDef* hrtc);
+void resetSPIFlash(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);
 
 
 #endif /* INC_PERIPHERAL_DRIVER_H_ */

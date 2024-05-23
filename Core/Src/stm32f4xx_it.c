@@ -257,6 +257,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		writePageSPI_W(&hspi1, huart, decodeASCII(UARTRxData[1]));
 	}
 
+	// Software reset flash chip over SPI (data_rx[0] = "x")
+	else if (UARTRxData[0] == 0x78) {
+		resetSPIFlash(&hspi1, huart, decodeASCII(UARTRxData[1]));
+	}
+
 	// Read Accelerometer WhoAmI (data_rx[0] = "c")
 	else if (UARTRxData[0] == 0x63) {
 		checkAccelWhoAmI(&hi2c1, huart);

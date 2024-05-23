@@ -23,6 +23,8 @@ extern uint8_t FLASH_READEN;		// Read enable to begin reading data
 extern uint8_t FLASH_READ_MANU;		// Instruction code to read the manufacturer ID
 extern uint8_t FLASH_32K_ERS;		// Erase all memory within a 32K-byte block
 extern uint8_t FLASH_ERASE;			// Erase the entire chip
+extern uint8_t RST_EN;				// Reset enable
+extern uint8_t DEV_RST;				// Reset device
 
 extern uint8_t data_buffer[PAGE_SIZE];
 
