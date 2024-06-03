@@ -26,8 +26,6 @@ extern uint8_t FLASH_ERASE;			// Erase the entire chip
 extern uint8_t RST_EN;				// Reset enable
 extern uint8_t DEV_RST;				// Reset device
 
-extern uint8_t data_buffer[PAGE_SIZE];
-
 typedef struct {
     GPIO_TypeDef* GPIOx;
     uint16_t GPIO_Pin_CS;

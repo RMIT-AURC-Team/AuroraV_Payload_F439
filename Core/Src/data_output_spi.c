@@ -26,7 +26,7 @@ HAL_StatusTypeDef erase_chip_spi(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
 	return HAL_OK;
 }
 
-void erase_32k_spi(SPI_HandleTypeDef *hspi, uint32_t addr, uint8_t flashNo) {
+HAL_StatusTypeDef erase_32k_spi(SPI_HandleTypeDef *hspi, uint32_t addr, uint8_t flashNo) {
 	GPIO_Config config = getGPIOConfig(flashNo);
 
 	uint8_t busy = 0x01;
@@ -36,6 +36,13 @@ void erase_32k_spi(SPI_HandleTypeDef *hspi, uint32_t addr, uint8_t flashNo) {
 
 	write_enable_spi(hspi, flashNo);
 	perform_operation(&FLASH_32K_ERS, hspi, config.GPIOx, config.GPIO_Pin_CS);
+
+	busy = 0x01;
+	while(busy) {
+		busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
+	}
+
+	return HAL_OK;
 }
 
 void write_enable_spi(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
@@ -57,28 +64,21 @@ void software_reset(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
 
 	perform_operation(&RST_EN, hspi, config.GPIOx, config.GPIO_Pin_CS);
 	perform_operation(&DEV_RST, hspi, config.GPIOx, config.GPIO_Pin_CS);
+
+	HAL_Delay(1);
 }
 
-uint8_t write_data_spi(uint8_t page[PAGE_SIZE], GPIO_PinState flight_mode, SPI_HandleTypeDef *hspi, uint32_t addr, uint8_t flashNo) {
+uint8_t write_data_spi(uint8_t page[PAGE_SIZE], SPI_HandleTypeDef *hspi, uint32_t addr, uint8_t flashNo) {
 	GPIO_Config config = getGPIOConfig(flashNo);
-	uint8_t exit = EXIT_FAILURE;
 
-	// If in flight mode, write data out to flash
-	if(flight_mode == GPIO_PIN_SET) {
-
-		uint8_t busy = 0x01;
-		while(busy) {
-			busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
-		}
-
-		// Send the write enable signal
-		write_enable_spi(hspi, flashNo);
-		spi_write_data(&FLASH_PGWR, PAGE_SIZE, page, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
-		exit = EXIT_SUCCESS;
-
-	// If not in flight mode, exit
-	} else {
-		exit = EXIT_SUCCESS;
+	uint8_t busy = 0x01;
+	while(busy) {
+		busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
 	}
-	return exit;
+
+	// Send the write enable signal
+	write_enable_spi(hspi, flashNo);
+	spi_write_data(&FLASH_PGWR, PAGE_SIZE, page, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
+
+	return EXIT_SUCCESS;
 }

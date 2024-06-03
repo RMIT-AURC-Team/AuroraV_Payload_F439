@@ -14,6 +14,22 @@
 #include "data_output_spi.h"
 #include "accelerometer.h"
 
+/**
+ * 0 = Online; 1 = Offline;
+ *
+ * Bits				Peripheral
+ * 7				RESERVED (0)
+ * 6				RESEVRED (0)
+ * 5				RESERVED (0)
+ * 4				BME280_1
+ * 3				BME280_0
+ * 2				Accelerometer
+ * 1				SPIFlash_1
+ * 0				SPIFlash_0
+ */
+uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_HandleTypeDef* hi2c1, I2C_HandleTypeDef* hi2c2);
+
+
 void heartbeatUART(UART_HandleTypeDef *huart);
 void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);
 void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);

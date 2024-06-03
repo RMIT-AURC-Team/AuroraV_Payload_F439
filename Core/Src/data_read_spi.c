@@ -12,7 +12,7 @@ uint8_t check_status_register(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
 	return spi_sendOp_readByte(&FLASH_READSR1, hspi, config.GPIOx, config.GPIO_Pin_CS);
 }
 
-uint32_t find_next_blank_page(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_PinState *end_of_flash_ptr, uint8_t flashNo) {
+uint32_t find_next_blank_page(SPI_HandleTypeDef *hspi, GPIO_PinState *end_of_flash_ptr, uint8_t flashNo) {
 	uint8_t firstBytes = 4;
 	GPIO_Config config = getGPIOConfig(flashNo);
 

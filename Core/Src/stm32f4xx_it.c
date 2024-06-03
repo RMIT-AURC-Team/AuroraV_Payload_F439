@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include "main.h"
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -237,6 +238,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		heartbeatUART(huart);
 	}
 
+/***************************** SPI Flash ************************************************/
 	// Erase specified flash chip (data_rx[0]  = "e")
 	else if (UARTRxData[0] == 0x65) {
 		eraseFlashSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
@@ -262,6 +264,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		resetSPIFlash(&hspi1, huart, decodeASCII(UARTRxData[1]));
 	}
 
+/*********************************** I2C Accelerometer ***********************************/
 	// Read Accelerometer WhoAmI (data_rx[0] = "c")
 	else if (UARTRxData[0] == 0x63) {
 		checkAccelWhoAmI(&hi2c1, huart);
@@ -272,6 +275,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		accelToUART(huart);
 	}
 
+
+/********************************** I2C BME280 *******************************************/
 	// Read the temp sensor ID and print to the UART[0] (data_rx [0]= "b")
 	else if (UARTRxData[0] == 0x62) {
 		readTempSensorID(&hi2c2, huart, decodeASCII(UARTRxData[1]));

@@ -9,6 +9,46 @@
 /***************************************************************************************************************
  * Generic Functions
  */
+uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_HandleTypeDef* hi2c1, I2C_HandleTypeDef* hi2c2) {
+	uint8_t retVal = 0x00;
+
+/**
+	// Check BME280_1
+	if(readBME280_id_reg(hi2c2, 1) != 0x60) {			// Expected 0x60
+		retVal  = retVal | 0x10;
+	}
+**/
+
+	// Check BME280_0
+	if(readBME280_id_reg(hi2c2, 0) != 0x60) {			// Expected 0x60
+		retVal  = retVal | 0x08;
+	}
+
+	// Check Accelerometer
+	if(readAccel_whoami(hi2c1) != 0x32) {				// Expected 0x32
+		retVal  = retVal | 0x04;
+	}
+
+/**
+	// Check SPIFlash_1
+	uint8_t manu[2] = {0, 0};
+	read_manufacturer_id(manu, hspi2, 1);
+	if(manu[0] != 0xEF) {								// Expected 0xEF
+		retVal  = retVal | 0x02;
+	}
+**/
+
+	// Check SPIFlash_0
+	uint8_t manu0[2] = {0, 0};
+	read_manufacturer_id(manu0, hspi1, 0);
+	if(manu0[0] != 0xEF) {								// Expected 0xEF
+		retVal  = retVal | 0x01;
+	}
+
+
+	return retVal;
+}
+
 void heartbeatUART(UART_HandleTypeDef *huart) {
 	send_uart_string(huart, "**Heartbeat**\r\n");			// Transmit the heartbeat
 }
@@ -21,7 +61,7 @@ void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t f
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
 		if (erase_chip_spi(hspi, flashNo) == HAL_OK) {
 			send_uart_string(huart, "Successful Chip Erase\r\n");
-			next_blank_page = find_next_blank_page(hspi, huart, &end_of_flash, flashNo);
+			next_blank_page0 = find_next_blank_page(hspi, &end_of_flash, flashNo);
 		} else {
 			send_uart_string(huart, "Error during chip erase. Please check the connection and try again.\r\n");
 		}
@@ -30,7 +70,7 @@ void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t f
 }
 
 void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo) {
-	uint32_t num_of_pages = next_blank_page;
+	uint32_t num_of_pages = next_blank_page0;
 	if(num_of_pages == 0) {
 		num_of_pages = PAGE_SIZE;
 	}
@@ -40,7 +80,7 @@ void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t
 
 	for (int i = 0; i < (num_of_pages); i++) {
 		uint8_t page[PAGE_SIZE];
-		read_page_spi(page, hspi, address, flashNo);//
+		read_page_spi(page, hspi, address, flashNo);
 		uart_transmit_page(huart, page);						// Transmit the data//
 		address += PAGE_SIZE;
 	}
@@ -60,8 +100,8 @@ void writePageSPI_W(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t 
 	for (int i = 0; i < PAGE_SIZE; i++) {
 		data_out[i] = 0x77;		// Make all data in the page 'w'
 	}
-	write_data_spi(data_out, GPIO_PIN_SET, hspi, next_blank_page, flashNo);
-	next_blank_page += PAGE_SIZE;
+	write_data_spi(data_out, hspi, next_blank_page0, flashNo);
+	next_blank_page0 += PAGE_SIZE;
 
 	send_uart_string(huart, "Successful Page Written\r\n");
 }
@@ -136,22 +176,22 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 	uint8_t array_ptr = 0;
 	// Store the time in the buffer if there is space
 	if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
-		data_buffer[byte_tracker + 0] = (uint8_t) ((time >> 8) & 0xFF);
-		data_buffer[byte_tracker + 1] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
+		data_buffer[buffer_ref][byte_tracker + 0] = (uint8_t) ((time >> 8) & 0xFF);
+		data_buffer[buffer_ref][byte_tracker + 1] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
 
 		array_ptr += 2;
 		for (int i = 0; i < 6; i++) {
-		  data_buffer[byte_tracker + array_ptr] = accel_data[i];
+		  data_buffer[buffer_ref][byte_tracker + array_ptr] = accel_data[i];
 		  array_ptr += 1;
 		}
 
 		for (int i = 0; i < 8; i++) {
-		  data_buffer[byte_tracker + array_ptr] = bme280_data_1[i];
+		  data_buffer[buffer_ref][byte_tracker + array_ptr] = bme280_data_1[i];
 		  array_ptr += 1;
 		}
 
 		for (int i = 0; i < 8; i++) {
-		  data_buffer[byte_tracker + array_ptr] = bme280_data_2[i];
+		  data_buffer[buffer_ref][byte_tracker + array_ptr] = bme280_data_2[i];
 		  array_ptr += 1;
 		}
 

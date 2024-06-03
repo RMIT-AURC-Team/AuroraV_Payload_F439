@@ -43,7 +43,7 @@ void spi_read_data(uint8_t* opcode, uint16_t data_size, uint8_t data_read[data_s
 	HAL_SPI_Transmit(hspi, &addrM, 1, 100);
 	HAL_SPI_Transmit(hspi, &addrL, 1, 100);
 
-	HAL_SPI_Receive(hspi, data_read, 4, 100);
+	HAL_SPI_Receive(hspi, data_read, data_size, 100);
 	HAL_GPIO_WritePin(GPIOx, GPIO_Pin_CS, GPIO_PIN_SET);
 }
 
