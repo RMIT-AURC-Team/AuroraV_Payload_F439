@@ -33,7 +33,7 @@ HAL_StatusTypeDef init_bme280(I2C_HandleTypeDef* hi2c, uint8_t bme) {
 	ret =  i2c_write_reg(hi2c, bme_addr, &RST_REG, RST);
 
 	// Set humidity control register
-	control_reg = i2c_read_reg(hi2c, bme_addr, &CTRL_HUM_REG);
+	i2c_read_reg(hi2c, &control_reg, bme_addr, &CTRL_HUM_REG);
 	control_reg = control_reg & 0xF8;
 	control_reg = control_reg | CTRL_HUM_MSK;
 	ret = i2c_write_reg(hi2c, bme_addr, &CTRL_HUM_REG, control_reg);
@@ -48,7 +48,7 @@ HAL_StatusTypeDef init_bme280(I2C_HandleTypeDef* hi2c, uint8_t bme) {
 }
 
 void readTempHumPres(uint8_t values[6], I2C_HandleTypeDef* hi2c, uint8_t bme) {
-	uint8_t readings[8];
+	uint8_t readings[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 	uint8_t bme_addr = getBME280Config(bme).bme_addr;
 	i2c_burst_read(hi2c, bme_addr, OUT_PRESS_H, 8, readings);
 
@@ -69,7 +69,10 @@ void readTempHumPres(uint8_t values[6], I2C_HandleTypeDef* hi2c, uint8_t bme) {
 
 uint8_t readBME280_id_reg(I2C_HandleTypeDef* hi2c, uint8_t bme) {
 	uint8_t bme_addr = getBME280Config(bme).bme_addr;
-	return i2c_read_reg(hi2c, bme_addr, &ID_REG);
+	uint8_t data = 0x00;
+	i2c_read_reg(hi2c, &data, bme_addr, &ID_REG);
+
+	return data;
 }
 
 void readBME280_calib(I2C_HandleTypeDef* hi2c, uint8_t bme, uint8_t calibration1[CALIB_CNT_1], uint8_t calibration2[CALIB_CNT_2]) {

@@ -58,11 +58,10 @@
 extern TIM_HandleTypeDef htim6;
 extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
-extern SPI_HandleTypeDef hspi1;
 extern RTC_HandleTypeDef hrtc;
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
-
+extern uint8_t uart_rec_flag;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -233,73 +232,9 @@ void TIM6_DAC_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	// Send Heartbeat to UART (data_rx[0] = "h")
-	if (UARTRxData[0] == 0x68) {
-		heartbeatUART(huart);
-	}
-
-/***************************** SPI Flash ************************************************/
-	// Erase specified flash chip (data_rx[0]  = "e")
-	else if (UARTRxData[0] == 0x65) {
-		eraseFlashSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
-	}
-
-	// Read data from specified flash chip (data_rx[0] = "r")
-	else if (UARTRxData[0] == 0x72) {
-		readFlashToUART(&hspi1, huart, decodeASCII(UARTRxData[1]));
-	}
-
-	// Read Manufacturer over SPI (data_rx[0] = "m")
-	else if (UARTRxData[0] == 0x6d) {
-		readFlashManuSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
-	}
-
-	// Write a page over SPI (data_rx[0] = "w")
-	else if (UARTRxData[0] == 0x77) {
-		writePageSPI_W(&hspi1, huart, decodeASCII(UARTRxData[1]));
-	}
-
-	// Software reset flash chip over SPI (data_rx[0] = "x")
-	else if (UARTRxData[0] == 0x78) {
-		resetSPIFlash(&hspi1, huart, decodeASCII(UARTRxData[1]));
-	}
-
-/*********************************** I2C Accelerometer ***********************************/
-	// Read Accelerometer WhoAmI (data_rx[0] = "c")
-	else if (UARTRxData[0] == 0x63) {
-		checkAccelWhoAmI(&hi2c1, huart);
-	}
-
-	// Read the accelerometer and print to the UART[0] (data_rx [0] = "a")
-	else if (UARTRxData[0] == 0x61) {
-		accelToUART(huart);
-	}
-
-
-/********************************** I2C BME280 *******************************************/
-	// Read the temp sensor ID and print to the UART[0] (data_rx [0]= "b")
-	else if (UARTRxData[0] == 0x62) {
-		readTempSensorID(&hi2c2, huart, decodeASCII(UARTRxData[1]));
-	}
-
-	// Read the temp sensor calibration registers and print to the UART (data_rx[0] = "p")
-	else if (UARTRxData[0] == 0x70) {
-		readTempCalibration(&hi2c2, huart, decodeASCII(UARTRxData[1]));
-	}
-
-	// Read the temp sensor and print to the UART[0] (data_rx [0]= "t")
-	else if (UARTRxData[0] == 0x74) {
-		readTempSensor(huart, decodeASCII(UARTRxData[1]));
-	}
-
+	uart_rec_flag = 0x01;
 	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
 }
 
-uint8_t decodeASCII(uint8_t asciiVal) {
-	int returnVal = -1;
-	if ((asciiVal >= 48) && (asciiVal <= 57)) {
-		returnVal = asciiVal - 48;
-	}
-	return returnVal;
-}
+
 /* USER CODE END 1 */

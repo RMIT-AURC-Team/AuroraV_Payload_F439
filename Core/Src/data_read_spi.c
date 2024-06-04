@@ -7,11 +7,6 @@
 
 #include "data_read_spi.h"
 
-uint8_t check_status_register(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
-	GPIO_Config config = getGPIOConfig(flashNo);
-	return spi_sendOp_readByte(&FLASH_READSR1, hspi, config.GPIOx, config.GPIO_Pin_CS);
-}
-
 uint32_t find_next_blank_page(SPI_HandleTypeDef *hspi, GPIO_PinState *end_of_flash_ptr, uint8_t flashNo) {
 	uint8_t firstBytes = 4;
 	GPIO_Config config = getGPIOConfig(flashNo);
@@ -28,10 +23,7 @@ uint32_t find_next_blank_page(SPI_HandleTypeDef *hspi, GPIO_PinState *end_of_fla
 	while ((page_start_concat != 0xFFFFFFFF) || (temp == NUM_OF_PAGES)) {
 		page_address = temp;
 
-		uint8_t busy = 0x01;
-		while(busy) {
-			busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
-		}
+		check_busy(hspi, flashNo, BSY_TIMEOUT_MS);
 
 		spi_read_data(&FLASH_READEN, firstBytes, page_start, hspi, page_address, config.GPIOx, config.GPIO_Pin_CS);
 
@@ -49,11 +41,7 @@ void read_page_spi(uint8_t data_read[PAGE_SIZE], SPI_HandleTypeDef *hspi, uint32
 	GPIO_Config config = getGPIOConfig(flashNo);
 
 	// Read the status register to ensure no write is currently in progress
-	uint8_t busy = 0x01;
-	while(busy) {
-		busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
-	}
-
+	check_busy(hspi, flashNo, BSY_TIMEOUT_MS);
 	spi_read_data(&FLASH_READEN, PAGE_SIZE, data_read, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
 }
 
@@ -61,13 +49,10 @@ void read_manufacturer_id(uint8_t manu[2], SPI_HandleTypeDef *hspi, uint8_t flas
 	GPIO_Config config = getGPIOConfig(flashNo);
 
 	// Read the status register to ensure no write is currently in progress
-	uint8_t busy = 0x01;
-	while(busy) {
-		busy = (check_status_register(hspi, flashNo) & 0x01);	// Check if there is a write in progress
-	}
-
-	uint8_t addr = 0x00;
+	check_busy(hspi, flashNo, BSY_TIMEOUT_MS);
 
 	// Read the entire contents of a page starting from the given address
+	uint8_t addr = 0x00;
 	spi_read_data(&FLASH_READ_MANU, 2, manu, hspi, addr, config.GPIOx, config.GPIO_Pin_CS);
 }
+

@@ -12,12 +12,10 @@
 uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_HandleTypeDef* hi2c1, I2C_HandleTypeDef* hi2c2) {
 	uint8_t retVal = 0x00;
 
-/**
 	// Check BME280_1
 	if(readBME280_id_reg(hi2c2, 1) != 0x60) {			// Expected 0x60
 		retVal  = retVal | 0x10;
 	}
-**/
 
 	// Check BME280_0
 	if(readBME280_id_reg(hi2c2, 0) != 0x60) {			// Expected 0x60
@@ -29,14 +27,12 @@ uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_Han
 		retVal  = retVal | 0x04;
 	}
 
-/**
 	// Check SPIFlash_1
 	uint8_t manu[2] = {0, 0};
 	read_manufacturer_id(manu, hspi2, 1);
 	if(manu[0] != 0xEF) {								// Expected 0xEF
 		retVal  = retVal | 0x02;
 	}
-**/
 
 	// Check SPIFlash_0
 	uint8_t manu0[2] = {0, 0};
@@ -44,13 +40,11 @@ uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_Han
 	if(manu0[0] != 0xEF) {								// Expected 0xEF
 		retVal  = retVal | 0x01;
 	}
-
-
 	return retVal;
 }
 
 void heartbeatUART(UART_HandleTypeDef *huart) {
-	send_uart_string(huart, "**Heartbeat**\r\n");			// Transmit the heartbeat
+	send_uart_hex(huart, 0x51);			// Transmit the heartbeat as device ID (0x51 = Q)
 }
 
 /***************************************************************************************************************
@@ -126,7 +120,7 @@ void accelToUART(UART_HandleTypeDef *huart) {
 }
 
 /***************************************************************************************************************
- * I2C Temperature Sensor Functions
+ * I2C BME280 Sensor Functions
  */
 void readTempSensorID(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uint8_t tempNo) {
 	send_uart_hex(huart, readBME280_id_reg(hi2c, tempNo));
@@ -148,29 +142,27 @@ void readTempCalibration(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uin
 
 void readTempSensor(UART_HandleTypeDef *huart, uint8_t tempNo) {
 	if (tempNo == 0) {
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 6; i++) {
 			send_uart_hex(huart, bme280_data_1[i]);
 		}
 	} else if (tempNo == 1) {
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 6; i++) {
 			send_uart_hex(huart, bme280_data_2[i]);
 		}
 	}
-
-
 }
 
 /***************************************************************************************************************
  * Process All Sensors
  */
 void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp, RTC_HandleTypeDef* hrtc) {
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_7);		// Toggle LED
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);		// Toggle LED
 
 	// Read Accelerometer Data
 	readAccelerometer(accel_data, hi2c_accel);
 
 	readTempHumPres(bme280_data_1, hi2c_temp, 0);
-	//  readTempHumPres(bme280_data_2, hi2c_temp, 1);
+	readTempHumPres(bme280_data_2, hi2c_temp, 1);
 
 	uint16_t time = getTimestampMilliseconds(hrtc);
 	uint8_t array_ptr = 0;

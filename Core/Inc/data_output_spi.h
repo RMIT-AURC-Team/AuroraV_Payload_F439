@@ -8,7 +8,6 @@
 #ifndef INC_DATA_OUTPUT_SPI_H_
 #define INC_DATA_OUTPUT_SPI_H_
 #include "data_management.h"
-#include "data_read_spi.h"
 
 void write_enable_spi(SPI_HandleTypeDef *hspi, uint8_t flashNo);
 void write_disable_spi(SPI_HandleTypeDef *hspi, uint8_t flashNo);

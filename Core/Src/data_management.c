@@ -31,3 +31,35 @@ GPIO_Config getGPIOConfig(uint8_t flashNo) {
 
     return config;
 }
+
+uint8_t check_busy(SPI_HandleTypeDef *hspi, uint8_t flashNo, int timeout) {
+	uint8_t ret_val = 0x00;
+
+    // Get the current time
+	uint32_t startTick = HAL_GetTick();
+
+	// Read the status register to ensure no write is currently in progress
+	uint8_t busy = 0x01;
+	while(busy) {
+		// Check if there is a write in progress
+		busy = (check_status_register(hspi, flashNo) & 0x01);
+
+		uint32_t currTick = HAL_GetTick();
+
+        // Check if the timeout has been reached
+		if ((currTick - startTick) >= timeout) {
+        	ret_val = 0x01;
+            break;
+        }
+	}
+
+	return ret_val;
+}
+
+uint8_t check_status_register(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
+	GPIO_Config config = getGPIOConfig(flashNo);
+	uint8_t status_reg = 0x00;
+	spi_sendOp_readByte(&FLASH_READSR1, hspi, &status_reg, config.GPIOx, config.GPIO_Pin_CS);
+	return status_reg;
+}
+

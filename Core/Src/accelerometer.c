@@ -34,5 +34,8 @@ void readAccelerometer(uint8_t values[6], I2C_HandleTypeDef* hi2c) {
 }
 
 uint8_t readAccel_whoami(I2C_HandleTypeDef* hi2c) {
-	return i2c_read_reg(hi2c, H3LIS331DL_ADDR, &WHOAMI);
+	uint8_t data = 0x00;
+	i2c_read_reg(hi2c, &data, H3LIS331DL_ADDR, &WHOAMI);
+
+	return data;
 }

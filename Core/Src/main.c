@@ -54,10 +54,11 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint8_t UARTRxData[2];
+uint8_t uart_rec_flag;
 uint8_t data_buffer[2][PAGE_SIZE];
 uint8_t accel_data[6];
-uint8_t bme280_data_1[8];
-uint8_t bme280_data_2[8];
+uint8_t bme280_data_1[6];
+uint8_t bme280_data_2[6];
 uint8_t buffer_ref;
 uint32_t next_blank_page0;
 uint32_t next_blank_page1;
@@ -131,6 +132,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if(uart_rec_flag == 0x01) {
+		  handleUART();
+	  }
+
+
+
+
+
+
+
+
+
     // If at the end of the data buffer, write the page out
 //    if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
 //      GPIO_PinState flight_mode = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
@@ -571,29 +584,134 @@ void systemInit() {
 	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
 
 	  // Clean the data buffer and set all values to 0xFF
+	  next_blank_page0 = 0;
+	  next_blank_page1 = 0;
 	  clean_data_buffer(0);
 	  clean_data_buffer(1);
 
+	  for (uint8_t i = 0; i < 6; i++) {
+		  accel_data[i] = 0x00;
+		  bme280_data_1[i] = 0x00;
+		  bme280_data_2[i] = 0x00;
+	  }
 
 	  // Initialise the peripherals
 	  init_accel(&hi2c1);
 	  init_bme280(&hi2c2, 0);
-	//  init_bme280(&hi2c2, 1);
+	  init_bme280(&hi2c2, 1);
 	  software_reset(&hspi1, 0);
-//	  software_reset(&hspi2, 1);
+	  software_reset(&hspi2, 1);
 
 	  next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, 0);
-//	  next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, 1);
+	  next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, 1);
 
 	  buffer_ref = 0;
 	  byte_tracker = 0;
 	  end_of_flash = GPIO_PIN_SET;
+	  uart_rec_flag = 0;
 
 	  send_uart_hex(&huart2, systemStatus(&hspi1, &hspi2, &hi2c1, &hi2c2));
 
-	  HAL_UART_Receive_IT(&huart2, UARTRxData, 2);			// Initiate the UART Receive interrupt
+	  // Initiate clocks and interrupts
+	  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0); // Set SysTick to highest priority
+	  HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
 	  initialise_rtc_default(&hrtc);
 	  HAL_TIM_Base_Start_IT(&htim6);
+}
+
+void handleUART() {
+	UART_HandleTypeDef *huart = &huart2;
+
+	// Send Heartbeat to UART (data_rx[0] = "h")
+	if (UARTRxData[0] == 0x68) {
+		heartbeatUART(huart);
+		send_uart_hex(huart, systemStatus(&hspi1, &hspi2, &hi2c1, &hi2c2));
+	}
+
+/***************************** SPI Flash ************************************************/
+	// Erase specified flash chip (data_rx[0]  = "e")
+	else if (UARTRxData[0] == 0x65) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			eraseFlashSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			eraseFlashSPI(&hspi2, huart, decodeASCII(UARTRxData[1]));
+		}
+	}
+
+	// Read data from specified flash chip (data_rx[0] = "r")
+	else if (UARTRxData[0] == 0x72) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			readFlashToUART(&hspi1, huart, decodeASCII(UARTRxData[1]));
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			readFlashToUART(&hspi2, huart, decodeASCII(UARTRxData[1]));
+		}
+	}
+
+	// Read Manufacturer over SPI (data_rx[0] = "m")
+	else if (UARTRxData[0] == 0x6d) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			readFlashManuSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			readFlashManuSPI(&hspi2, huart, decodeASCII(UARTRxData[1]));
+		}
+	}
+
+	// Write a page over SPI (data_rx[0] = "w")
+	else if (UARTRxData[0] == 0x77) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			writePageSPI_W(&hspi1, huart, decodeASCII(UARTRxData[1]));
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			writePageSPI_W(&hspi2, huart, decodeASCII(UARTRxData[1]));
+		}
+	}
+
+	// Software reset flash chip over SPI (data_rx[0] = "x")
+	else if (UARTRxData[0] == 0x78) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			resetSPIFlash(&hspi1, huart, decodeASCII(UARTRxData[1]));
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			resetSPIFlash(&hspi2, huart, decodeASCII(UARTRxData[1]));
+		}
+	}
+
+/*********************************** I2C Accelerometer ***********************************/
+	// Read Accelerometer WhoAmI (data_rx[0] = "c")
+	else if (UARTRxData[0] == 0x63) {
+		checkAccelWhoAmI(&hi2c1, huart);
+	}
+
+	// Read the accelerometer and print to the UART[0] (data_rx [0] = "a")
+	else if (UARTRxData[0] == 0x61) {
+		accelToUART(huart);
+	}
+
+/********************************** I2C BME280 *******************************************/
+	// Read the temp sensor ID and print to the UART[0] (data_rx [0]= "b")
+	else if (UARTRxData[0] == 0x62) {
+		readTempSensorID(&hi2c2, huart, decodeASCII(UARTRxData[1]));
+	}
+
+	// Read the temp sensor calibration registers and print to the UART (data_rx[0] = "p")
+	else if (UARTRxData[0] == 0x70) {
+		readTempCalibration(&hi2c2, huart, decodeASCII(UARTRxData[1]));
+	}
+
+	// Read the temp sensor and print to the UART[0] (data_rx [0]= "t")
+	else if (UARTRxData[0] == 0x74) {
+		readTempSensor(huart, decodeASCII(UARTRxData[1]));
+	}
+
+	uart_rec_flag = 0x00;
+	UARTRxData[0] = 0x00;
+	UARTRxData[1] = 0x00;
+}
+
+uint8_t decodeASCII(uint8_t asciiVal) {
+	int returnVal = -1;
+	if ((asciiVal >= 48) && (asciiVal <= 57)) {
+		returnVal = asciiVal - 48;
+	}
+	return returnVal;
 }
 /* USER CODE END 4 */
 

@@ -10,6 +10,9 @@
 
 #include "stm32f4xx_hal.h"
 
+#define TIMEOUT_SML		2
+#define TIMEOUT_LRG		100
+
 /**
  * @brief Sends an operation code via SPI and reads a byte of data.
  *
@@ -23,7 +26,7 @@
  *
  * @return The byte of data read from the device.
  */
-uint8_t spi_sendOp_readByte(uint8_t* opcode, SPI_HandleTypeDef *hspi, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
+HAL_StatusTypeDef spi_sendOp_readByte(uint8_t* opcode, SPI_HandleTypeDef *hspi, uint8_t* data_ptr, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
 
 /**
  * @brief Performs an operation by sending an opcode via SPI.
@@ -36,7 +39,7 @@ uint8_t spi_sendOp_readByte(uint8_t* opcode, SPI_HandleTypeDef *hspi, GPIO_TypeD
  * @param GPIOx Pointer to the GPIO port to which the chip select pin is connected.
  * @param GPIO_Pin_CS Pin number of the chip select pin.
  */
-void perform_operation(uint8_t* opcode, SPI_HandleTypeDef *hspi, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
+HAL_StatusTypeDef perform_operation(uint8_t* opcode, SPI_HandleTypeDef *hspi, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
 
 /**
  * @brief Reads data from a specific address via SPI.
@@ -53,7 +56,7 @@ void perform_operation(uint8_t* opcode, SPI_HandleTypeDef *hspi, GPIO_TypeDef* G
  * @param GPIOx Pointer to the GPIO port to which the chip select pin is connected.
  * @param GPIO_Pin_CS Pin number of the chip select pin.
  */
-void spi_read_data(uint8_t* opcode, uint16_t data_size, uint8_t data_read[data_size], SPI_HandleTypeDef *hspi, uint32_t addr, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
+HAL_StatusTypeDef spi_read_data(uint8_t* opcode, uint16_t data_size, uint8_t data_read[data_size], SPI_HandleTypeDef *hspi, uint32_t addr, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
 
 /**
  * @brief Writes data to a specific address via SPI.
@@ -70,6 +73,6 @@ void spi_read_data(uint8_t* opcode, uint16_t data_size, uint8_t data_read[data_s
  * @param GPIOx Pointer to the GPIO port to which the chip select pin is connected.
  * @param GPIO_Pin_CS Pin number of the chip select pin.
  */
-void spi_write_data(uint8_t* opcode, uint16_t data_size, uint8_t data_write[data_size], SPI_HandleTypeDef *hspi, uint32_t addr, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
+HAL_StatusTypeDef spi_write_data(uint8_t* opcode, uint16_t data_size, uint8_t data_write[data_size], SPI_HandleTypeDef *hspi, uint32_t addr, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
 
 #endif /* INC_SPI_DRIVER_H_ */

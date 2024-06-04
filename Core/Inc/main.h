@@ -49,10 +49,11 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern uint8_t UARTRxData[2];
+extern uint8_t uart_rec_flag;
 extern uint8_t data_buffer[2][PAGE_SIZE];
 extern uint8_t accel_data[6];
-extern uint8_t bme280_data_1[8];
-extern uint8_t bme280_data_2[8];
+extern uint8_t bme280_data_1[6];
+extern uint8_t bme280_data_2[6];
 extern uint32_t next_blank_page0;
 extern uint32_t next_blank_page1;
 extern uint8_t buffer_ref;
@@ -92,6 +93,8 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 void clean_data_buffer(uint8_t bufferRef);
 void systemInit();
+void handleUART();
+uint8_t decodeASCII(uint8_t asciiVal);
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
