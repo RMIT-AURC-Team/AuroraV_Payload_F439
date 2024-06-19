@@ -18,21 +18,7 @@ uint8_t FLASH_ERASE		= 0xC7;			// Erase the entire chip
 uint8_t RST_EN			= 0x66;			// Reset enable
 uint8_t DEV_RST			= 0x99;			// Reset device
 
-GPIO_Config getGPIOConfig(uint8_t flashNo) {
-    GPIO_Config config;
-
-    if (flashNo == 0) {
-        config.GPIOx = GPIOD;
-        config.GPIO_Pin_CS = GPIO_PIN_2;
-    } else if (flashNo == 1) {
-        config.GPIOx = GPIOB;
-        config.GPIO_Pin_CS = GPIO_PIN_12;
-    }
-
-    return config;
-}
-
-uint8_t check_busy(SPI_HandleTypeDef *hspi, uint8_t flashNo, int timeout) {
+uint8_t check_busy(SPI_HandleTypeDef *hspi, GPIO_Config config, int timeout) {
 	uint8_t ret_val = 0x00;
 
     // Get the current time
@@ -42,7 +28,7 @@ uint8_t check_busy(SPI_HandleTypeDef *hspi, uint8_t flashNo, int timeout) {
 	uint8_t busy = 0x01;
 	while(busy) {
 		// Check if there is a write in progress
-		busy = (check_status_register(hspi, flashNo) & 0x01);
+		busy = (check_status_register(hspi, config) & 0x01);
 
 		uint32_t currTick = HAL_GetTick();
 
@@ -56,10 +42,9 @@ uint8_t check_busy(SPI_HandleTypeDef *hspi, uint8_t flashNo, int timeout) {
 	return ret_val;
 }
 
-uint8_t check_status_register(SPI_HandleTypeDef *hspi, uint8_t flashNo) {
-	GPIO_Config config = getGPIOConfig(flashNo);
+uint8_t check_status_register(SPI_HandleTypeDef *hspi, GPIO_Config config) {
 	uint8_t status_reg = 0x00;
-	spi_sendOp_readByte(&FLASH_READSR1, hspi, &status_reg, config.GPIOx, config.GPIO_Pin_CS);
+	spi_sendOp_readByte(&FLASH_READSR1, hspi, &status_reg, config.GPIOx, config.GPIO_Pin);
 	return status_reg;
 }
 

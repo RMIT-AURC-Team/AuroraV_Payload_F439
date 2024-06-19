@@ -1,6 +1,6 @@
 ../Core/Src/data_output_spi.c:10:19:erase_chip_spi	1
-../Core/Src/data_output_spi.c:23:19:erase_32k_spi	1
-../Core/Src/data_output_spi.c:36:6:write_enable_spi	1
-../Core/Src/data_output_spi.c:41:6:write_disable_spi	1
-../Core/Src/data_output_spi.c:46:6:software_reset	1
-../Core/Src/data_output_spi.c:57:9:write_data_spi	1
+../Core/Src/data_output_spi.c:21:19:erase_32k_spi	1
+../Core/Src/data_output_spi.c:33:6:write_enable_spi	1
+../Core/Src/data_output_spi.c:37:6:write_disable_spi	1
+../Core/Src/data_output_spi.c:41:6:software_reset	1
+../Core/Src/data_output_spi.c:51:9:write_data_spi	1

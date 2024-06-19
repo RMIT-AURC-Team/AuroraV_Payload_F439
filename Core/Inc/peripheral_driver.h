@@ -28,20 +28,18 @@
  * 0				SPIFlash_0
  */
 uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_HandleTypeDef* hi2c1, I2C_HandleTypeDef* hi2c2);
-
-
 void heartbeatUART(UART_HandleTypeDef *huart);
-void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);
-void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);
-void readFlashManuSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);
-void writePageSPI_W(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);
+void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select);
+void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select);
+void readFlashManuSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select);
+void writePageSPI_W(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select);
 void checkAccelWhoAmI(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart);
 void accelToUART(UART_HandleTypeDef *huart);
 void readTempSensorID(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uint8_t tempNo);
 void readTempCalibration(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uint8_t tempNo);
 void readTempSensor(UART_HandleTypeDef *huart, uint8_t tempNo);
 void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp, RTC_HandleTypeDef* hrtc);
-void resetSPIFlash(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, uint8_t flashNo);
+void resetSPIFlash(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select);
 
 
 #endif /* INC_PERIPHERAL_DRIVER_H_ */

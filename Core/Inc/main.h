@@ -39,6 +39,7 @@ extern "C" {
 #include "accelerometer.h"
 #include "bme280.h"
 #include "peripheral_driver.h"
+#include "gpio_struct.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -49,7 +50,8 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 extern uint8_t UARTRxData[2];
-extern uint8_t uart_rec_flag;
+extern uint8_t uart2_rec_flag;
+extern uint8_t tim6_overflow_flag;
 extern uint8_t data_buffer[2][PAGE_SIZE];
 extern uint8_t accel_data[6];
 extern uint8_t bme280_data_1[6];
@@ -60,6 +62,14 @@ extern uint8_t buffer_ref;
 extern uint16_t byte_tracker;
 extern GPIO_PinState end_of_flash;
 extern GPIO_PinState *end_of_flash_ptr;
+extern GPIO_Config led_orange;
+extern GPIO_Config led_green;
+extern GPIO_Config cs_spi1;
+extern GPIO_Config wp_spi1;
+extern GPIO_Config cs_spi2;
+extern GPIO_Config wp_spi2;
+extern GPIO_Config jmp_flight;
+
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -93,6 +103,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 void clean_data_buffer(uint8_t bufferRef);
 void systemInit();
+void gpio_set_config();
 void handleUART();
 uint8_t decodeASCII(uint8_t asciiVal);
 /* USER CODE END Private defines */

@@ -1,3 +1,2 @@
-../Core/Src/data_management.c:21:13:getGPIOConfig	3
-../Core/Src/data_management.c:35:9:check_busy	3
-../Core/Src/data_management.c:59:9:check_status_register	1
+../Core/Src/data_management.c:21:9:check_busy	3
+../Core/Src/data_management.c:45:9:check_status_register	1

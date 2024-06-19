@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -61,7 +60,7 @@ extern UART_HandleTypeDef huart2;
 extern RTC_HandleTypeDef hrtc;
 extern I2C_HandleTypeDef hi2c1;
 extern I2C_HandleTypeDef hi2c2;
-extern uint8_t uart_rec_flag;
+extern uint8_t uart2_rec_flag;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -226,13 +225,13 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
-  readAllSensors(&hi2c1, &hi2c2, &hrtc);
+  tim6_overflow_flag = 0x01;
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	uart_rec_flag = 0x01;
+	uart2_rec_flag = 0x01;
 	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
 }
 

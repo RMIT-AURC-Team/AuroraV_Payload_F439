@@ -9,6 +9,7 @@
 #define INC_DATA_MANAGEMENT_H_
 #include "stm32f4xx_hal.h"
 #include "spi_driver.h"
+#include "gpio_struct.h"
 
 #define PAGE_SIZE 		256 			// 2048 bits
 #define NUM_OF_PAGES 	65536
@@ -30,13 +31,6 @@ extern uint8_t FLASH_ERASE;			// Erase the entire chip
 extern uint8_t RST_EN;				// Reset enable
 extern uint8_t DEV_RST;				// Reset device
 
-typedef struct {
-    GPIO_TypeDef* GPIOx;
-    uint16_t GPIO_Pin_CS;
-} GPIO_Config;
-
-GPIO_Config getGPIOConfig(uint8_t flashNo);
-
 /**
  * This function checks if a write operation is in progress and waits until it's completed or a timeout occurs.
  *
@@ -47,8 +41,8 @@ GPIO_Config getGPIOConfig(uint8_t flashNo);
  * @return         Returns 0x00 if the write operation completes within the specified timeout.
  *                 Returns 0x01 if a timeout occurs before the write operation completes.
  */
-uint8_t check_busy(SPI_HandleTypeDef *hspi, uint8_t flashNo, int timeout);
+uint8_t check_busy(SPI_HandleTypeDef *hspi, GPIO_Config config, int timeout);
 
-uint8_t check_status_register(SPI_HandleTypeDef *hspi, uint8_t flashNo);
+uint8_t check_status_register(SPI_HandleTypeDef *hspi, GPIO_Config config);
 
 #endif /* INC_DATA_MANAGEMENT_H_ */

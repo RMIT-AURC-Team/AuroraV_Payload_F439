@@ -27,9 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
 #include "main.h"
-#include "peripheral_driver.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -60,7 +58,6 @@ void SysTick_Handler(void);
 void USART2_IRQHandler(void);
 void TIM6_DAC_IRQHandler(void);
 /* USER CODE BEGIN EFP */
-uint8_t decodeASCII(uint8_t asciiVal);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus

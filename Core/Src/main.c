@@ -54,7 +54,8 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint8_t UARTRxData[2];
-uint8_t uart_rec_flag;
+uint8_t uart2_rec_flag;
+uint8_t tim6_overflow_flag;
 uint8_t data_buffer[2][PAGE_SIZE];
 uint8_t accel_data[6];
 uint8_t bme280_data_1[6];
@@ -65,6 +66,15 @@ uint32_t next_blank_page1;
 uint16_t byte_tracker;
 GPIO_PinState end_of_flash;
 GPIO_PinState *end_of_flash_ptr;
+
+GPIO_Config led_orange;
+GPIO_Config led_green;
+GPIO_Config cs_spi1;
+GPIO_Config wp_spi1;
+GPIO_Config cs_spi2;
+GPIO_Config wp_spi2;
+GPIO_Config jmp_flight;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -132,10 +142,16 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(uart_rec_flag == 0x01) {
+	  if(uart2_rec_flag == 0x01) {
 		  handleUART();
 	  }
 
+	  if(tim6_overflow_flag == 0x01) {
+		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
+		  readAllSensors(&hi2c1, &hi2c2, &hrtc);
+		  tim6_overflow_flag = 0x00;
+		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
+	  }
 
 
 
@@ -579,44 +595,64 @@ void clean_data_buffer(uint8_t bufferRef) {
 }
 
 void systemInit() {
-	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Turn LED off
-	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2, GPIO_PIN_SET);		// SET SPI CS High to disable bus 1
-	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
+	gpio_set_config();
 
-	  // Clean the data buffer and set all values to 0xFF
-	  next_blank_page0 = 0;
-	  next_blank_page1 = 0;
-	  clean_data_buffer(0);
-	  clean_data_buffer(1);
+	HAL_GPIO_WritePin(led_orange.GPIOx, led_orange.GPIO_Pin, GPIO_PIN_RESET);	// Turn LED off
+	HAL_GPIO_WritePin(cs_spi1.GPIOx, cs_spi1.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 1
+	HAL_GPIO_WritePin(cs_spi2.GPIOx, cs_spi2.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
 
-	  for (uint8_t i = 0; i < 6; i++) {
-		  accel_data[i] = 0x00;
-		  bme280_data_1[i] = 0x00;
-		  bme280_data_2[i] = 0x00;
-	  }
+	// Clean the data buffer and set all values to 0xFF
+	next_blank_page0 = 0;
+	next_blank_page1 = 0;
+	clean_data_buffer(0);
+	clean_data_buffer(1);
 
-	  // Initialise the peripherals
-	  init_accel(&hi2c1);
-	  init_bme280(&hi2c2, 0);
-	  init_bme280(&hi2c2, 1);
-	  software_reset(&hspi1, 0);
-	  software_reset(&hspi2, 1);
+	for (uint8_t i = 0; i < 6; i++) {
+		accel_data[i] = 0x00;
+		bme280_data_1[i] = 0x00;
+		bme280_data_2[i] = 0x00;
+	}
 
-	  next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, 0);
-	  next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, 1);
+	// Initialise the peripherals
+	init_accel(&hi2c1);
+	init_bme280(&hi2c2, 0);
+	init_bme280(&hi2c2, 1);
+	software_reset(&hspi1, cs_spi1);
+	software_reset(&hspi2, cs_spi2);
 
-	  buffer_ref = 0;
-	  byte_tracker = 0;
-	  end_of_flash = GPIO_PIN_SET;
-	  uart_rec_flag = 0;
+	next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+	next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
 
-	  send_uart_hex(&huart2, systemStatus(&hspi1, &hspi2, &hi2c1, &hi2c2));
+	buffer_ref = 0;
+	byte_tracker = 0;
+	end_of_flash = GPIO_PIN_SET;
+	uart2_rec_flag = 0;
 
-	  // Initiate clocks and interrupts
-	  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0); // Set SysTick to highest priority
-	  HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
-	  initialise_rtc_default(&hrtc);
-	  HAL_TIM_Base_Start_IT(&htim6);
+	send_uart_hex(&huart2, systemStatus(&hspi1, &hspi2, &hi2c1, &hi2c2));
+
+	// Initiate clocks and interrupts
+	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
+	initialise_rtc_default(&hrtc);
+	HAL_TIM_Base_Start_IT(&htim6);
+}
+
+void gpio_set_config() {
+	// Orange LED (Heartbeat LED)
+	led_orange = create_GPIO_Config(GPIOB, GPIO_PIN_14);
+
+	// Green LED (Hard Drive LED)
+	led_green = create_GPIO_Config(GPIOB, GPIO_PIN_7);
+
+	// SPI Flash 0 CS and WP
+	cs_spi1 = create_GPIO_Config(GPIOD, GPIO_PIN_2);		// Change for SRAD
+	wp_spi1 = create_GPIO_Config(GPIOA, GPIO_PIN_4);
+
+	// SPI Flash 1 CS and WP
+	cs_spi2 = create_GPIO_Config(GPIOB, GPIO_PIN_12);		// Change for SRAD
+	wp_spi2 = create_GPIO_Config(GPIOC, GPIO_PIN_0);
+
+	// Flight Jumper GPIO Input
+	jmp_flight = create_GPIO_Config(GPIOB, GPIO_PIN_1);
 }
 
 void handleUART() {
@@ -632,45 +668,45 @@ void handleUART() {
 	// Erase specified flash chip (data_rx[0]  = "e")
 	else if (UARTRxData[0] == 0x65) {
 		if(decodeASCII(UARTRxData[1]) == 0) {
-			eraseFlashSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
+			eraseFlashSPI(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
-			eraseFlashSPI(&hspi2, huart, decodeASCII(UARTRxData[1]));
+			eraseFlashSPI(&hspi2, huart, cs_spi2);
 		}
 	}
 
 	// Read data from specified flash chip (data_rx[0] = "r")
 	else if (UARTRxData[0] == 0x72) {
 		if(decodeASCII(UARTRxData[1]) == 0) {
-			readFlashToUART(&hspi1, huart, decodeASCII(UARTRxData[1]));
+			readFlashToUART(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
-			readFlashToUART(&hspi2, huart, decodeASCII(UARTRxData[1]));
+			readFlashToUART(&hspi2, huart, cs_spi2);
 		}
 	}
 
 	// Read Manufacturer over SPI (data_rx[0] = "m")
 	else if (UARTRxData[0] == 0x6d) {
 		if(decodeASCII(UARTRxData[1]) == 0) {
-			readFlashManuSPI(&hspi1, huart, decodeASCII(UARTRxData[1]));
+			readFlashManuSPI(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
-			readFlashManuSPI(&hspi2, huart, decodeASCII(UARTRxData[1]));
+			readFlashManuSPI(&hspi2, huart, cs_spi2);
 		}
 	}
 
 	// Write a page over SPI (data_rx[0] = "w")
 	else if (UARTRxData[0] == 0x77) {
 		if(decodeASCII(UARTRxData[1]) == 0) {
-			writePageSPI_W(&hspi1, huart, decodeASCII(UARTRxData[1]));
+			writePageSPI_W(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
-			writePageSPI_W(&hspi2, huart, decodeASCII(UARTRxData[1]));
+			writePageSPI_W(&hspi2, huart, cs_spi2);
 		}
 	}
 
 	// Software reset flash chip over SPI (data_rx[0] = "x")
 	else if (UARTRxData[0] == 0x78) {
 		if(decodeASCII(UARTRxData[1]) == 0) {
-			resetSPIFlash(&hspi1, huart, decodeASCII(UARTRxData[1]));
+			resetSPIFlash(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
-			resetSPIFlash(&hspi2, huart, decodeASCII(UARTRxData[1]));
+			resetSPIFlash(&hspi2, huart, cs_spi2);
 		}
 	}
 
@@ -701,7 +737,7 @@ void handleUART() {
 		readTempSensor(huart, decodeASCII(UARTRxData[1]));
 	}
 
-	uart_rec_flag = 0x00;
+	uart2_rec_flag = 0x00;
 	UARTRxData[0] = 0x00;
 	UARTRxData[1] = 0x00;
 }
