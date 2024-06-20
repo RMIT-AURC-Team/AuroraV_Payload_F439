@@ -52,7 +52,8 @@ extern "C" {
 extern uint8_t UARTRxData[2];
 extern uint8_t uart2_rec_flag;
 extern uint8_t tim6_overflow_flag;
-extern uint8_t data_buffer[2][PAGE_SIZE];
+extern uint8_t data_buffer_tx[2][PAGE_SIZE];
+extern uint8_t buffer_tracker;
 extern uint8_t accel_data[6];
 extern uint8_t bme280_data_1[6];
 extern uint8_t bme280_data_2[6];
@@ -87,21 +88,21 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SPI2_WP_Pin GPIO_PIN_0
 #define SPI2_WP_GPIO_Port GPIOC
+#define SPI1_WP_Pin GPIO_PIN_4
+#define SPI1_WP_GPIO_Port GPIOA
 #define JMP_Flight_Pin GPIO_PIN_1
 #define JMP_Flight_GPIO_Port GPIOB
 #define SPI2_CS_Pin GPIO_PIN_12
 #define SPI2_CS_GPIO_Port GPIOB
 #define LED3_Pin GPIO_PIN_14
 #define LED3_GPIO_Port GPIOB
-#define SPI1_WP_Pin GPIO_PIN_14
-#define SPI1_WP_GPIO_Port GPIOD
 #define SPI1_CS_Pin GPIO_PIN_2
 #define SPI1_CS_GPIO_Port GPIOD
 #define LED2_Pin GPIO_PIN_7
 #define LED2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-void clean_data_buffer(uint8_t bufferRef);
+void clean_data_buffer(uint16_t array_size, uint8_t data_array[array_size]);
 void systemInit();
 void gpio_set_config();
 void handleUART();

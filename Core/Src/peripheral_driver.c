@@ -92,7 +92,7 @@ void writePageSPI_W(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Con
 	for (int i = 0; i < PAGE_SIZE; i++) {
 		data_out[i] = 0x77;		// Make all data in the page 'w'
 	}
-	write_data_spi(data_out, hspi, next_blank_page0, config);
+	write_data_spi_dma(data_out, hspi, next_blank_page0, config);
 	next_blank_page0 += PAGE_SIZE;
 
 	send_uart_string(huart, "Successful Page Written\r\n");
@@ -165,22 +165,22 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 	uint8_t array_ptr = 0;
 	// Store the time in the buffer if there is space
 	if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
-		data_buffer[buffer_ref][byte_tracker + 0] = (uint8_t) ((time >> 8) & 0xFF);
-		data_buffer[buffer_ref][byte_tracker + 1] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
+		data_buffer_tx[buffer_tracker][byte_tracker + 0] = (uint8_t) ((time >> 8) & 0xFF);
+		data_buffer_tx[buffer_tracker][byte_tracker + 1] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
 
 		array_ptr += 2;
 		for (int i = 0; i < 6; i++) {
-		  data_buffer[buffer_ref][byte_tracker + array_ptr] = accel_data[i];
+		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = accel_data[i];
 		  array_ptr += 1;
 		}
 
 		for (int i = 0; i < 8; i++) {
-		  data_buffer[buffer_ref][byte_tracker + array_ptr] = bme280_data_1[i];
+		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = bme280_data_1[i];
 		  array_ptr += 1;
 		}
 
 		for (int i = 0; i < 8; i++) {
-		  data_buffer[buffer_ref][byte_tracker + array_ptr] = bme280_data_2[i];
+		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = bme280_data_2[i];
 		  array_ptr += 1;
 		}
 

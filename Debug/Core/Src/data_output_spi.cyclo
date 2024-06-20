@@ -4,3 +4,4 @@
 ../Core/Src/data_output_spi.c:37:6:write_disable_spi	1
 ../Core/Src/data_output_spi.c:41:6:software_reset	1
 ../Core/Src/data_output_spi.c:51:9:write_data_spi	1
+../Core/Src/data_output_spi.c:61:9:write_data_spi_dma	1

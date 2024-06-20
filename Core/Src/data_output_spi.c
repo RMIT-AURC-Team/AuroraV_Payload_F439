@@ -57,3 +57,13 @@ uint8_t write_data_spi(uint8_t page[PAGE_SIZE], SPI_HandleTypeDef *hspi, uint32_
 
 	return 0;
 }
+
+uint8_t write_data_spi_dma(uint8_t page[PAGE_SIZE], SPI_HandleTypeDef *hspi, uint32_t addr, GPIO_Config config) {
+	check_busy(hspi, config, BSY_TIMEOUT_MS);
+
+	// Send the write enable signal
+	write_enable_spi(hspi, config);
+	spi_write_data_dma(&FLASH_PGWR, PAGE_SIZE, page, hspi, addr, config.GPIOx, config.GPIO_Pin);
+
+	return 0;
+}

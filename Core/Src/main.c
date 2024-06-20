@@ -47,6 +47,8 @@ RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
+DMA_HandleTypeDef hdma_spi1_tx;
+DMA_HandleTypeDef hdma_spi2_tx;
 
 TIM_HandleTypeDef htim6;
 
@@ -56,7 +58,8 @@ UART_HandleTypeDef huart2;
 uint8_t UARTRxData[2];
 uint8_t uart2_rec_flag;
 uint8_t tim6_overflow_flag;
-uint8_t data_buffer[2][PAGE_SIZE];
+uint8_t data_buffer_tx[2][PAGE_SIZE];
+uint8_t buffer_tracker;
 uint8_t accel_data[6];
 uint8_t bme280_data_1[6];
 uint8_t bme280_data_2[6];
@@ -80,6 +83,7 @@ GPIO_Config jmp_flight;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI1_Init(void);
@@ -124,6 +128,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_RTC_Init();
   MX_SPI1_Init();
@@ -142,10 +147,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  // Handle UART receive flag
 	  if(uart2_rec_flag == 0x01) {
 		  handleUART();
 	  }
 
+	  // Handle Timer 6 overflow flag
 	  if(tim6_overflow_flag == 0x01) {
 		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 		  readAllSensors(&hi2c1, &hi2c2, &hrtc);
@@ -153,36 +160,30 @@ int main(void)
 		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 	  }
 
+	  // Write data to flash when buffer is full
+	  if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
+		  GPIO_PinState flight_mode = HAL_GPIO_ReadPin(jmp_flight.GPIOx, jmp_flight.GPIO_Pin);
+		  if((flight_mode & !(end_of_flash)) == GPIO_PIN_SET) {
+			  HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_SET);		// Toggle LED when writing data
+
+			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi1, next_blank_page0, cs_spi1);
+			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi2, next_blank_page0, cs_spi2);
+			  next_blank_page0 += PAGE_SIZE;
+
+			  HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_RESET);		// Toggle LED when writing data
+		  }
+
+		// Reset the buffer trackers
+		buffer_tracker = buffer_tracker ^ 0x01;
+		byte_tracker = 0;
+	  }
+
+	  if(next_blank_page0 == (NUM_OF_PAGES*PAGE_SIZE)) {
+		  next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+	  }
 
 
 
-
-
-
-
-    // If at the end of the data buffer, write the page out
-//    if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
-//      GPIO_PinState flight_mode = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
-//      if((flight_mode & end_of_flash) == GPIO_PIN_SET) {
-//        // Disable interrupts briefly
-//        HAL_UART_AbortReceive_IT(&huart2); // Disable UART receive interrupt
-//        HAL_TIM_Base_Stop_IT(&htim6); // Disable timer interrupt
-//        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Toggle LED when writing data
-//        write_data_spi(data_buffer, flight_mode, &hspi1, next_blank_page, 0);
-//        next_blank_page += PAGE_SIZE;
-//
-//        // Renenable interrupts
-//        HAL_UART_Receive_IT(&huart2, UARTRxData,1);			// Initiate the UART Receive interrupt
-//        HAL_TIM_Base_Start_IT(&htim6);
-//
-//        if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
-//          next_blank_page = find_next_blank_page(&hspi1, &huart2, &end_of_flash, 0);
-//        }
-//        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);		// Toggle LED when writing data
-//      }
-//      byte_tracker = 0;
-//      clean_data_buffer();
-//    }
   }
   /* USER CODE END 3 */
 }
@@ -508,6 +509,26 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+  /* DMA2_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -529,10 +550,13 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(SPI2_WP_GPIO_Port, SPI2_WP_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SPI1_WP_GPIO_Port, SPI1_WP_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SPI2_CS_Pin|LED3_Pin|LED2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, SPI1_WP_Pin|SPI1_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : SPI2_WP_Pin */
   GPIO_InitStruct.Pin = SPI2_WP_Pin;
@@ -540,6 +564,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(SPI2_WP_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI1_WP_Pin */
+  GPIO_InitStruct.Pin = SPI1_WP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SPI1_WP_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : JMP_Flight_Pin */
   GPIO_InitStruct.Pin = JMP_Flight_Pin;
@@ -561,13 +592,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : SPI1_WP_Pin */
-  GPIO_InitStruct.Pin = SPI1_WP_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SPI1_WP_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : PA11 PA12 */
   GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -588,9 +612,9 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void clean_data_buffer(uint8_t bufferRef) {
-    for (int i = 0; i < PAGE_SIZE; ++i) {
-        	data_buffer[bufferRef][i] = 0xFF;  // Initialize each element to 0xFF
+void clean_data_buffer(uint16_t array_size, uint8_t data_array[array_size]) {
+    for (int i = 0; i < array_size; ++i) {
+    	data_array[i] = 0xFF;  // Initialize each element to 0xFF
     }
 }
 
@@ -604,8 +628,8 @@ void systemInit() {
 	// Clean the data buffer and set all values to 0xFF
 	next_blank_page0 = 0;
 	next_blank_page1 = 0;
-	clean_data_buffer(0);
-	clean_data_buffer(1);
+	clean_data_buffer(PAGE_SIZE, data_buffer_tx[0]);
+	clean_data_buffer(PAGE_SIZE, data_buffer_tx[1]);
 
 	for (uint8_t i = 0; i < 6; i++) {
 		accel_data[i] = 0x00;
@@ -625,12 +649,12 @@ void systemInit() {
 
 	buffer_ref = 0;
 	byte_tracker = 0;
-	end_of_flash = GPIO_PIN_SET;
+	end_of_flash = GPIO_PIN_SET;		// Change this
 	uart2_rec_flag = 0;
 
 	send_uart_hex(&huart2, systemStatus(&hspi1, &hspi2, &hi2c1, &hi2c2));
 
-	// Initiate clocks and interrupts
+	// Initiate clocks, interrupts and DMA
 	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
 	initialise_rtc_default(&hrtc);
 	HAL_TIM_Base_Start_IT(&htim6);

@@ -75,4 +75,7 @@ HAL_StatusTypeDef spi_read_data(uint8_t* opcode, uint16_t data_size, uint8_t dat
  */
 HAL_StatusTypeDef spi_write_data(uint8_t* opcode, uint16_t data_size, uint8_t data_write[data_size], SPI_HandleTypeDef *hspi, uint32_t addr, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
 
+HAL_StatusTypeDef spi_write_data_dma(uint8_t* opcode, uint16_t data_size, uint8_t data_write[data_size], SPI_HandleTypeDef *hspi, uint32_t addr, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin_CS);
+
+
 #endif /* INC_SPI_DRIVER_H_ */
