@@ -261,11 +261,6 @@ void DMA2_Stream3_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	uart2_rec_flag = 0x01;
-	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
-}
-
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 	// Pull CS pin high to deselect the device
     if (hspi->Instance == SPI1) {
@@ -278,5 +273,10 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 
     CLEAR_BIT(hspi->Instance->CR2, SPI_CR2_TXDMAEN);
     clean_data_buffer(PAGE_SIZE, data_buffer_tx[buffer_tracker ^ 0x01]);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	uart2_rec_flag = 0x01;
+	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
 }
 /* USER CODE END 1 */

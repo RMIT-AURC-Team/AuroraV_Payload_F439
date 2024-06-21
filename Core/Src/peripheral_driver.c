@@ -54,7 +54,7 @@ void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Conf
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Activate the "write out" LED
 	if (erase_chip_spi(hspi, config) == HAL_OK) {
 		send_uart_string(huart, "Successful Chip Erase\r\n");
-		next_blank_page0 = find_next_blank_page(hspi, &end_of_flash, config);
+		next_blank_page = find_next_blank_page(hspi, &end_of_flash, config);
 	} else {
 		send_uart_string(huart, "Error during chip erase. Please check the connection and try again.\r\n");
 	}
@@ -62,7 +62,7 @@ void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Conf
 }
 
 void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config config) {
-	uint32_t num_of_pages = next_blank_page0;
+	uint32_t num_of_pages = next_blank_page;
 	if(num_of_pages == 0) {
 		num_of_pages = PAGE_SIZE;
 	}
@@ -92,8 +92,8 @@ void writePageSPI_W(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Con
 	for (int i = 0; i < PAGE_SIZE; i++) {
 		data_out[i] = 0x77;		// Make all data in the page 'w'
 	}
-	write_data_spi_dma(data_out, hspi, next_blank_page0, config);
-	next_blank_page0 += PAGE_SIZE;
+	write_data_spi_dma(data_out, hspi, next_blank_page, config);
+	next_blank_page += PAGE_SIZE;
 
 	send_uart_string(huart, "Successful Page Written\r\n");
 }
@@ -163,7 +163,8 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 
 	uint16_t time = getTimestampMilliseconds(hrtc);
 	uint8_t array_ptr = 0;
-	// Store the time in the buffer if there is space
+
+	// Store the new read in the buffer if there is space
 	if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
 		data_buffer_tx[buffer_tracker][byte_tracker + 0] = (uint8_t) ((time >> 8) & 0xFF);
 		data_buffer_tx[buffer_tracker][byte_tracker + 1] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
@@ -174,17 +175,17 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 		  array_ptr += 1;
 		}
 
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 6; i++) {
 		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = bme280_data_1[i];
 		  array_ptr += 1;
 		}
 
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 6; i++) {
 		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = bme280_data_2[i];
 		  array_ptr += 1;
 		}
 
-		byte_tracker = byte_tracker + 24;
+		byte_tracker = byte_tracker + READ_SIZE;
 	}
 }
 

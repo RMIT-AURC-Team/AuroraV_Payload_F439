@@ -64,8 +64,7 @@ uint8_t accel_data[6];
 uint8_t bme280_data_1[6];
 uint8_t bme280_data_2[6];
 uint8_t buffer_ref;
-uint32_t next_blank_page0;
-uint32_t next_blank_page1;
+uint32_t next_blank_page;
 uint16_t byte_tracker;
 GPIO_PinState end_of_flash;
 GPIO_PinState *end_of_flash_ptr;
@@ -166,9 +165,9 @@ int main(void)
 		  if((flight_mode & !(end_of_flash)) == GPIO_PIN_SET) {
 			  HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_SET);		// Toggle LED when writing data
 
-			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi1, next_blank_page0, cs_spi1);
-			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi2, next_blank_page0, cs_spi2);
-			  next_blank_page0 += PAGE_SIZE;
+			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi1, next_blank_page, cs_spi1);
+			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi2, next_blank_page, cs_spi2);
+			  next_blank_page += PAGE_SIZE;
 
 			  HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_RESET);		// Toggle LED when writing data
 		  }
@@ -178,8 +177,8 @@ int main(void)
 		byte_tracker = 0;
 	  }
 
-	  if(next_blank_page0 == (NUM_OF_PAGES*PAGE_SIZE)) {
-		  next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+	  if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+		  next_blank_page = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
 	  }
 
 
@@ -455,9 +454,9 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 15999;
+  htim6.Init.Prescaler = 7999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 1000;
+  htim6.Init.Period = 40;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -626,8 +625,8 @@ void systemInit() {
 	HAL_GPIO_WritePin(cs_spi2.GPIOx, cs_spi2.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
 
 	// Clean the data buffer and set all values to 0xFF
-	next_blank_page0 = 0;
-	next_blank_page1 = 0;
+	next_blank_page = 0;
+
 	clean_data_buffer(PAGE_SIZE, data_buffer_tx[0]);
 	clean_data_buffer(PAGE_SIZE, data_buffer_tx[1]);
 
@@ -644,12 +643,15 @@ void systemInit() {
 	software_reset(&hspi1, cs_spi1);
 	software_reset(&hspi2, cs_spi2);
 
-	next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
-	next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+
+	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
+	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
 
 	buffer_ref = 0;
 	byte_tracker = 0;
-	end_of_flash = GPIO_PIN_SET;		// Change this
+	end_of_flash = GPIO_PIN_RESET;
 	uart2_rec_flag = 0;
 
 	send_uart_hex(&huart2, systemStatus(&hspi1, &hspi2, &hi2c1, &hi2c2));

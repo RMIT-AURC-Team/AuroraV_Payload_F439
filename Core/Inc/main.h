@@ -57,7 +57,7 @@ extern uint8_t buffer_tracker;
 extern uint8_t accel_data[6];
 extern uint8_t bme280_data_1[6];
 extern uint8_t bme280_data_2[6];
-extern uint32_t next_blank_page0;
+extern uint32_t next_blank_page;
 extern uint32_t next_blank_page1;
 extern uint8_t buffer_ref;
 extern uint16_t byte_tracker;

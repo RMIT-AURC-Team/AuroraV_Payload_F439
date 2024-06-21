@@ -14,7 +14,7 @@
 #define PAGE_SIZE 		256 			// 2048 bits
 #define NUM_OF_PAGES 	65536
 #define BLOCK_32K		256000
-#define READ_SIZE		24
+#define READ_SIZE		20
 #define BSY_TIMEOUT_MS	5
 #define BLK_ERS_32K_TO	1600
 #define CHIP_ERASE_TO	200000
