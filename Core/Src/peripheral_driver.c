@@ -127,6 +127,14 @@ void readTempSensorID(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uint8_
 void readTempCalibration(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uint8_t tempNo) {
 	uint8_t calibration1[25];
 	uint8_t calibration2[7];
+
+	for (uint8_t i = 0; i < CALIB_CNT_1; i++) {
+		calibration1[i] = 0x00;
+		if (i < CALIB_CNT_2) {
+			calibration2[i] = 0x00;
+		}
+	}
+
 	readBME280_calib(hi2c, tempNo, calibration1, calibration2);
 
 	for (int i = 0; i < 25; i++) {

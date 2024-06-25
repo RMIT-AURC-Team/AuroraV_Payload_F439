@@ -156,6 +156,9 @@ int main(void)
 		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 		  readAllSensors(&hi2c1, &hi2c2, &hrtc);
 		  tim6_overflow_flag = 0x00;
+
+//		  readTempSensor(&huart2, 0);
+
 		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 	  }
 
@@ -180,9 +183,6 @@ int main(void)
 	  if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
 		  next_blank_page = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
 	  }
-
-
-
   }
   /* USER CODE END 3 */
 }

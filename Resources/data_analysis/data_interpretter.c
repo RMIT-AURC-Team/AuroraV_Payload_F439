@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
-// Line 49255 becomes no good
+uint16_t little_to_big(uint16_t value);
 
 void interpret_data(char* file_path, int skip_bytes) {
     FILE *file = fopen(file_path, "rb");
@@ -39,17 +39,15 @@ void interpret_data(char* file_path, int skip_bytes) {
 
         // Accel X
         result += fread(&int1, sizeof(int16_t), 1, file);
-        int1 = le16toh(int1);  // Convert from little endian to host byte order
-
+        int1 = int1 >> 4;
         // Accel Y
         result += fread(&int2, sizeof(int16_t), 1, file);
-        int2 = le16toh(int2);
+        int2 = int2 >> 4;
 
 
         // Accel Z
         result += fread(&int3, sizeof(int16_t), 1, file);
-        int3 = le16toh(int3);
-
+        int3 = int3 >> 4;
 
         // Pressure 1
         result += fread(&int4, sizeof(int16_t), 1, file);
@@ -79,14 +77,13 @@ void interpret_data(char* file_path, int skip_bytes) {
             break;
         }
 
-        // Convert int1, int2, and int3 to m/s²
-        float int1_mpss = int1 * 0.012;
-        float int2_mpss = int2 * 0.012;
-        float int3_mpss = int3 * 0.012;
+        // Convert int1, int2, and int3 to Gs
+        float int1_g = (float) int1 * 0.049;
+        float int2_g = (float) int2 * 0.049;
+        float int3_g = (float) int3 * 0.049;
 
         // Write the data to the CSV file
-        // fprintf(csv_file, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", timestamp, int1, int2, int3, int4, int5, int6, int7, int8, int9);
-        fprintf(csv_file, "%d,%f,%f,%f,%d,%d,%d,%d,%d,%d\n", timestamp, int1_mpss, int2_mpss, int3_mpss, int4, int5, int6, int7, int8, int9);
+        fprintf(csv_file, "%d,%f,%f,%f,%d,%d,%d,%d,%d,%d\n", timestamp, int1_g, int2_g, int3_g, int4, int5, int6, int7, int8, int9);
 
         byte_counter += 20;  // 10 values * 2 bytes each
     }
@@ -109,9 +106,13 @@ long get_file_size(char* file_path) {
     return size;
 }
 
-int main() {
-    char* file_path = "log/recv_2024-06-21_16-51-06_50hz.log";
-    interpret_data(file_path, 0);
+// Convert a little endian 16 bit integer to a big endian 16 bit integer
+uint16_t little_to_big(uint16_t value) {
+    return htons(value);
+}
 
+int main() {
+    char* file_path = "log/recv_2024-06-25_22-39-12.log";
+    interpret_data(file_path, 0);
     return 0;
 }

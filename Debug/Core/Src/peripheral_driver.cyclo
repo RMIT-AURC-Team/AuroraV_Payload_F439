@@ -8,6 +8,6 @@
 ../Core/Src/peripheral_driver.c:109:6:checkAccelWhoAmI	1
 ../Core/Src/peripheral_driver.c:114:6:accelToUART	2
 ../Core/Src/peripheral_driver.c:123:6:readTempSensorID	1
-../Core/Src/peripheral_driver.c:127:6:readTempCalibration	3
-../Core/Src/peripheral_driver.c:141:6:readTempSensor	5
-../Core/Src/peripheral_driver.c:156:6:readAllSensors	5
+../Core/Src/peripheral_driver.c:127:6:readTempCalibration	5
+../Core/Src/peripheral_driver.c:149:6:readTempSensor	5
+../Core/Src/peripheral_driver.c:164:6:readAllSensors	5

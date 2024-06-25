@@ -11,7 +11,9 @@
 #include "stm32f4xx_hal.h"
 #include "i2c_driver.h"
 
+#define MASK_50Hz 0x27
 #define MASK_1kHz 0x3F
+#define MASK_BOOT 0x80
 #define MASK_100G 0x00
 
 extern const uint8_t H3LIS331DL_ADDR;		// 7bit device address
