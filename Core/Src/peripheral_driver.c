@@ -13,17 +13,17 @@ uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_Han
 	uint8_t retVal = 0x00;
 
 	// Check BME280_1
-	if(readBME280_id_reg(hi2c2, 1) != 0x60) {			// Expected 0x60
+	if(readBME280_id_reg(hi2c1, 1) != 0x60) {			// Expected 0x60
 		retVal  = retVal | 0x10;
 	}
 
 	// Check BME280_0
-	if(readBME280_id_reg(hi2c2, 0) != 0x60) {			// Expected 0x60
+	if(readBME280_id_reg(hi2c1, 0) != 0x60) {			// Expected 0x60
 		retVal  = retVal | 0x08;
 	}
 
 	// Check Accelerometer
-	if(readAccel_whoami(hi2c1) != 0x32) {				// Expected 0x32
+	if(readAccel_whoami(hi2c2) != 0xE5) {				// Expected 0xE5
 		retVal  = retVal | 0x04;
 	}
 

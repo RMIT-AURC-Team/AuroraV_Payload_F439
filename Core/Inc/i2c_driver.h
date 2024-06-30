@@ -29,6 +29,8 @@ HAL_StatusTypeDef i2c_read_reg(I2C_HandleTypeDef* hi2c, uint8_t* data_ptr, uint8
 
 HAL_StatusTypeDef i2c_burst_read(I2C_HandleTypeDef* hi2c, uint8_t dev_addr, uint8_t register_addr, uint8_t size, uint8_t data_buffer[size]);
 
+HAL_StatusTypeDef i2c_burst_read_alt(I2C_HandleTypeDef* hi2c, uint8_t dev_addr, uint8_t register_addr, uint8_t size, uint8_t data_buffer[size], uint8_t alt);
+
 /**
  * @brief Writes data to a register of a device via I2C.
  *
