@@ -51,6 +51,7 @@ extern "C" {
 /* USER CODE BEGIN EC */
 extern uint8_t uart2_rec_flag;
 extern uint8_t tim6_overflow_flag;
+extern uint8_t tim7_overflow_flag;
 extern uint8_t buffer_tracker;
 extern uint8_t data_buffer_tx[2][PAGE_SIZE];
 extern uint8_t buffer_ref;
@@ -71,6 +72,7 @@ extern GPIO_Config wp_spi1;
 extern GPIO_Config cs_spi2;
 extern GPIO_Config wp_spi2;
 extern GPIO_Config jmp_flight;
+extern uint8_t sysStatus;
 
 /* USER CODE END EC */
 

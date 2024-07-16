@@ -53,6 +53,7 @@ DMA_HandleTypeDef hdma_spi1_tx;
 DMA_HandleTypeDef hdma_spi2_tx;
 
 TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim7;
 
 UART_HandleTypeDef huart2;
 
@@ -63,6 +64,7 @@ I2C_HandleTypeDef *i2c_bme280;
 uint8_t UARTRxData[2];
 uint8_t uart2_rec_flag;
 uint8_t tim6_overflow_flag;
+uint8_t tim7_overflow_flag;
 uint8_t data_buffer_tx[2][PAGE_SIZE];
 uint8_t buffer_tracker;
 uint8_t accel_data[6];
@@ -81,6 +83,7 @@ GPIO_Config wp_spi1;
 GPIO_Config cs_spi2;
 GPIO_Config wp_spi2;
 GPIO_Config jmp_flight;
+uint8_t sysStatus;
 
 /* USER CODE END PV */
 
@@ -96,6 +99,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_CAN2_Init(void);
+static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -142,6 +146,7 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI2_Init();
   MX_CAN2_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
   systemInit();
   /* USER CODE END 2 */
@@ -158,15 +163,16 @@ int main(void)
 		  handleUART();
 	  }
 
+	  if (tim7_overflow_flag == 0x01) {
+		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
+		  sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
+		  tim7_overflow_flag = 0x00;
+	  }
+
 	  // Handle Timer 6 overflow flag
 	  if(tim6_overflow_flag == 0x01) {
-		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 		  readAllSensors(i2c_accel, i2c_bme280, &hrtc);
 		  tim6_overflow_flag = 0x00;
-
-//		  readTempSensor(&huart2, 0);
-
-		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 	  }
 
 	  // Write data to flash when buffer is full
@@ -252,11 +258,11 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 16;
+  hcan2.Init.Prescaler = 3;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
-  hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan2.Init.SyncJumpWidth = CAN_SJW_2TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_11TQ;
+  hcan2.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan2.Init.TimeTriggeredMode = DISABLE;
   hcan2.Init.AutoBusOff = DISABLE;
   hcan2.Init.AutoWakeUp = DISABLE;
@@ -519,6 +525,44 @@ static void MX_TIM6_Init(void)
 }
 
 /**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 7999;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 2000;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+
+  /* USER CODE END TIM7_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -690,13 +734,18 @@ void systemInit() {
 	byte_tracker = 0;
 	end_of_flash = GPIO_PIN_RESET;
 	uart2_rec_flag = 0;
+	tim6_overflow_flag = 0;
+	tim7_overflow_flag = 0;
 
-	send_uart_hex(&huart2, systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel));
+	sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
+
+	send_uart_hex(&huart2, sysStatus);
 
 	// Initiate clocks, interrupts and DMA
 	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
 	initialise_rtc_default(&hrtc);
 	HAL_TIM_Base_Start_IT(&htim6);
+	HAL_TIM_Base_Start_IT(&htim7);
 }
 
 void gpio_set_config() {
@@ -722,7 +771,7 @@ void handleUART() {
 	// Send Heartbeat to UART (data_rx[0] = "h")
 	if (UARTRxData[0] == 0x68) {
 		heartbeatUART(huart);
-		send_uart_hex(huart, systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel));
+		send_uart_hex(huart, sysStatus);
 	}
 
 /***************************** SPI Flash ************************************************/

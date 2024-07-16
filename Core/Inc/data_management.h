@@ -19,7 +19,6 @@
 #define BLK_ERS_32K_TO	1600
 #define CHIP_ERASE_TO	200000
 
-
 extern uint8_t FLASH_WREN;			// Write enable to begin writing data
 extern uint8_t FLASH_WRDIS;			// Write disable to disable writing data
 extern uint8_t FLASH_PGWR;			// Page write to write an entire page out
