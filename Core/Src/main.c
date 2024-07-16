@@ -40,6 +40,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+CAN_HandleTypeDef hcan2;
+
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
@@ -47,25 +49,57 @@ RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
+DMA_HandleTypeDef hdma_spi1_tx;
+DMA_HandleTypeDef hdma_spi2_tx;
 
 TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim7;
 
-UART_HandleTypeDef huart4;
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+I2C_HandleTypeDef *i2c_accel;
+I2C_HandleTypeDef *i2c_bme280;
+
+uint8_t UARTRxData[2];
+uint8_t uart2_rec_flag;
+uint8_t tim6_overflow_flag;
+uint8_t tim7_overflow_flag;
+uint8_t data_buffer_tx[2][PAGE_SIZE];
+uint8_t buffer_tracker;
+uint8_t accel_data[6];
+uint8_t bme280_data_1[6];
+uint8_t bme280_data_2[6];
+uint8_t buffer_ref;
+uint32_t next_blank_page;
+uint16_t byte_tracker;
+GPIO_PinState end_of_flash;
+GPIO_PinState *end_of_flash_ptr;
+
+GPIO_Config led_orange;
+GPIO_Config led_green;
+GPIO_Config cs_spi1;
+GPIO_Config wp_spi1;
+GPIO_Config cs_spi2;
+GPIO_Config wp_spi2;
+GPIO_Config jmp_flight;
+uint8_t sysStatus;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_I2C2_Init(void);
-static void MX_SPI1_Init(void);
-static void MX_SPI2_Init(void);
-static void MX_TIM6_Init(void);
-static void MX_UART4_Init(void);
 static void MX_RTC_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_TIM6_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_I2C2_Init(void);
+static void MX_SPI2_Init(void);
+static void MX_CAN2_Init(void);
+static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -103,15 +137,18 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
-  MX_I2C2_Init();
-  MX_SPI1_Init();
-  MX_SPI2_Init();
-  MX_TIM6_Init();
-  MX_UART4_Init();
   MX_RTC_Init();
+  MX_SPI1_Init();
+  MX_TIM6_Init();
+  MX_USART2_UART_Init();
+  MX_I2C2_Init();
+  MX_SPI2_Init();
+  MX_CAN2_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-
+  systemInit();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -121,6 +158,44 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  // Handle UART receive flag
+	  if(uart2_rec_flag == 0x01) {
+		  handleUART();
+	  }
+
+	  if (tim7_overflow_flag == 0x01) {
+		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
+		  sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
+		  tim7_overflow_flag = 0x00;
+	  }
+
+	  // Handle Timer 6 overflow flag
+	  if(tim6_overflow_flag == 0x01) {
+		  readAllSensors(i2c_accel, i2c_bme280, &hrtc);
+		  tim6_overflow_flag = 0x00;
+	  }
+
+	  // Write data to flash when buffer is full
+	  if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
+		  GPIO_PinState flight_mode = HAL_GPIO_ReadPin(jmp_flight.GPIOx, jmp_flight.GPIO_Pin);
+		  if((flight_mode & !(end_of_flash)) == GPIO_PIN_SET) {
+			  HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_SET);		// Toggle LED when writing data
+
+			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi1, next_blank_page, cs_spi1);
+			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi2, next_blank_page, cs_spi2);
+			  next_blank_page += PAGE_SIZE;
+
+			  HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_RESET);		// Toggle LED when writing data
+		  }
+
+		// Reset the buffer trackers
+		buffer_tracker = buffer_tracker ^ 0x01;
+		byte_tracker = 0;
+	  }
+
+	  if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+		  next_blank_page = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -165,6 +240,43 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief CAN2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CAN2_Init(void)
+{
+
+  /* USER CODE BEGIN CAN2_Init 0 */
+
+  /* USER CODE END CAN2_Init 0 */
+
+  /* USER CODE BEGIN CAN2_Init 1 */
+
+  /* USER CODE END CAN2_Init 1 */
+  hcan2.Instance = CAN2;
+  hcan2.Init.Prescaler = 3;
+  hcan2.Init.Mode = CAN_MODE_NORMAL;
+  hcan2.Init.SyncJumpWidth = CAN_SJW_2TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_11TQ;
+  hcan2.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan2.Init.TimeTriggeredMode = DISABLE;
+  hcan2.Init.AutoBusOff = DISABLE;
+  hcan2.Init.AutoWakeUp = DISABLE;
+  hcan2.Init.AutoRetransmission = DISABLE;
+  hcan2.Init.ReceiveFifoLocked = DISABLE;
+  hcan2.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&hcan2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CAN2_Init 2 */
+
+  /* USER CODE END CAN2_Init 2 */
+
 }
 
 /**
@@ -392,9 +504,9 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 0;
+  htim6.Init.Prescaler = 7999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 65535;
+  htim6.Init.Period = 40;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -413,35 +525,93 @@ static void MX_TIM6_Init(void)
 }
 
 /**
-  * @brief UART4 Initialization Function
+  * @brief TIM7 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_UART4_Init(void)
+static void MX_TIM7_Init(void)
 {
 
-  /* USER CODE BEGIN UART4_Init 0 */
+  /* USER CODE BEGIN TIM7_Init 0 */
 
-  /* USER CODE END UART4_Init 0 */
+  /* USER CODE END TIM7_Init 0 */
 
-  /* USER CODE BEGIN UART4_Init 1 */
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-  /* USER CODE END UART4_Init 1 */
-  huart4.Instance = UART4;
-  huart4.Init.BaudRate = 9600;
-  huart4.Init.WordLength = UART_WORDLENGTH_8B;
-  huart4.Init.StopBits = UART_STOPBITS_1;
-  huart4.Init.Parity = UART_PARITY_NONE;
-  huart4.Init.Mode = UART_MODE_TX_RX;
-  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart4) != HAL_OK)
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 7999;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 2000;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN UART4_Init 2 */
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
 
-  /* USER CODE END UART4_Init 2 */
+  /* USER CODE END TIM7_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+  /* DMA2_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
 
 }
 
@@ -464,23 +634,34 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, SPI3_CS_Pin|SPI2_WP_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, SPI2_CS_Pin|LED3_Pin|LED2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, SPI2_WP_Pin|SPI2_CS_Pin|SPI1_CS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(SPI1_WP_GPIO_Port, SPI1_WP_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED3_Pin|LED2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : SPI3_CS_Pin SPI2_WP_Pin */
-  GPIO_InitStruct.Pin = SPI3_CS_Pin|SPI2_WP_Pin;
+  /*Configure GPIO pin : SPI2_WP_Pin */
+  GPIO_InitStruct.Pin = SPI2_WP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SPI2_WP_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : SPI2_CS_Pin SPI1_CS_Pin */
+  GPIO_InitStruct.Pin = SPI2_CS_Pin|SPI1_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI1_WP_Pin */
+  GPIO_InitStruct.Pin = SPI1_WP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SPI1_WP_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : JMP_Flight_Pin */
   GPIO_InitStruct.Pin = JMP_Flight_Pin;
@@ -488,19 +669,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(JMP_Flight_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI2_CS_Pin LED3_Pin LED2_Pin */
-  GPIO_InitStruct.Pin = SPI2_CS_Pin|LED3_Pin|LED2_Pin;
+  /*Configure GPIO pins : LED3_Pin LED2_Pin */
+  GPIO_InitStruct.Pin = LED3_Pin|LED2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : SPI1_WP_Pin */
-  GPIO_InitStruct.Pin = SPI1_WP_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SPI1_WP_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA11 PA12 */
   GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_12;
@@ -510,27 +684,181 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF9_CAN1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : SPI1_CS_Pin */
-  GPIO_InitStruct.Pin = SPI1_CS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SPI1_CS_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PC10 PC11 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+void clean_data_buffer(uint16_t array_size, uint8_t data_array[array_size]) {
+    for (int i = 0; i < array_size; ++i) {
+    	data_array[i] = 0xFF;  // Initialize each element to 0xFF
+    }
+}
 
+void systemInit() {
+	i2c_accel = &hi2c2;
+	i2c_bme280 = &hi2c1;
+
+	gpio_set_config();
+
+	HAL_GPIO_WritePin(led_orange.GPIOx, led_orange.GPIO_Pin, GPIO_PIN_RESET);	// Turn LED off
+	HAL_GPIO_WritePin(cs_spi1.GPIOx, cs_spi1.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 1
+	HAL_GPIO_WritePin(cs_spi2.GPIOx, cs_spi2.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
+
+	// Clean the data buffer and set all values to 0xFF
+	next_blank_page = 0;
+
+	clean_data_buffer(PAGE_SIZE, data_buffer_tx[0]);
+	clean_data_buffer(PAGE_SIZE, data_buffer_tx[1]);
+
+	for (uint8_t i = 0; i < 6; i++) {
+		accel_data[i] = 0x00;
+		bme280_data_1[i] = 0x00;
+		bme280_data_2[i] = 0x00;
+	}
+
+	// Initialise the peripherals
+	init_accel(i2c_accel);
+	init_bme280(i2c_bme280, 0);
+	init_bme280(i2c_bme280, 1);
+	software_reset(&hspi1, cs_spi1);
+	software_reset(&hspi2, cs_spi2);
+
+	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+
+	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
+	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+
+	buffer_ref = 0;
+	byte_tracker = 0;
+	end_of_flash = GPIO_PIN_RESET;
+	uart2_rec_flag = 0;
+	tim6_overflow_flag = 0;
+	tim7_overflow_flag = 0;
+
+	sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
+
+	send_uart_hex(&huart2, sysStatus);
+
+	// Initiate clocks, interrupts and DMA
+	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
+	initialise_rtc_default(&hrtc);
+	HAL_TIM_Base_Start_IT(&htim6);
+	HAL_TIM_Base_Start_IT(&htim7);
+}
+
+void gpio_set_config() {
+	// Set LED gpio
+	led_orange = create_GPIO_Config(GPIOB, GPIO_PIN_14);	// Orange LED (Heartbeat LED)
+	led_green = create_GPIO_Config(GPIOB, GPIO_PIN_7);		// Green LED (Hard Drive LED)
+
+	// SPI Flash 0 CS and WP
+	cs_spi1 = create_GPIO_Config(GPIOC, GPIO_PIN_4);		// Change for SRAD
+	wp_spi1 = create_GPIO_Config(GPIOA, GPIO_PIN_4);
+
+	// SPI Flash 1 CS and WP
+	cs_spi2 = create_GPIO_Config(GPIOC, GPIO_PIN_1);		// Change for SRAD
+	wp_spi2 = create_GPIO_Config(GPIOC, GPIO_PIN_0);
+
+	// Flight Jumper GPIO Input
+	jmp_flight = create_GPIO_Config(GPIOB, GPIO_PIN_1);
+}
+
+void handleUART() {
+	UART_HandleTypeDef *huart = &huart2;
+
+	// Send Heartbeat to UART (data_rx[0] = "h")
+	if (UARTRxData[0] == 0x68) {
+		heartbeatUART(huart);
+		send_uart_hex(huart, sysStatus);
+	}
+
+/***************************** SPI Flash ************************************************/
+	// Erase specified flash chip (data_rx[0]  = "e")
+	else if (UARTRxData[0] == 0x65) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			eraseFlashSPI(&hspi1, huart, cs_spi1);
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			eraseFlashSPI(&hspi2, huart, cs_spi2);
+		}
+	}
+
+	// Read data from specified flash chip (data_rx[0] = "r")
+	else if (UARTRxData[0] == 0x72) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			readFlashToUART(&hspi1, huart, cs_spi1);
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			readFlashToUART(&hspi2, huart, cs_spi2);
+		}
+	}
+
+	// Read Manufacturer over SPI (data_rx[0] = "m")
+	else if (UARTRxData[0] == 0x6d) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			readFlashManuSPI(&hspi1, huart, cs_spi1);
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			readFlashManuSPI(&hspi2, huart, cs_spi2);
+		}
+	}
+
+	// Write a page over SPI (data_rx[0] = "w")
+	else if (UARTRxData[0] == 0x77) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			writePageSPI_W(&hspi1, huart, cs_spi1);
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			writePageSPI_W(&hspi2, huart, cs_spi2);
+		}
+	}
+
+	// Software reset flash chip over SPI (data_rx[0] = "x")
+	else if (UARTRxData[0] == 0x78) {
+		if(decodeASCII(UARTRxData[1]) == 0) {
+			resetSPIFlash(&hspi1, huart, cs_spi1);
+		} else if (decodeASCII(UARTRxData[1]) == 1) {
+			resetSPIFlash(&hspi2, huart, cs_spi2);
+		}
+	}
+
+/*********************************** I2C Accelerometer ***********************************/
+	// Read Accelerometer WhoAmI (data_rx[0] = "c")
+	else if (UARTRxData[0] == 0x63) {
+		checkAccelWhoAmI(i2c_accel, huart);
+	}
+
+	// Read the accelerometer and print to the UART[0] (data_rx [0] = "a")
+	else if (UARTRxData[0] == 0x61) {
+		accelToUART(huart);
+	}
+
+/********************************** I2C BME280 *******************************************/
+	// Read the temp sensor ID and print to the UART[0] (data_rx [0]= "b")
+	else if (UARTRxData[0] == 0x62) {
+		readTempSensorID(i2c_bme280, huart, decodeASCII(UARTRxData[1]));
+	}
+
+	// Read the temp sensor calibration registers and print to the UART (data_rx[0] = "p")
+	else if (UARTRxData[0] == 0x70) {
+		readTempCalibration(i2c_bme280, huart, decodeASCII(UARTRxData[1]));
+	}
+
+	// Read the temp sensor and print to the UART[0] (data_rx [0]= "t")
+	else if (UARTRxData[0] == 0x74) {
+		readTempSensor(huart, decodeASCII(UARTRxData[1]));
+	}
+
+	uart2_rec_flag = 0x00;
+	UARTRxData[0] = 0x00;
+	UARTRxData[1] = 0x00;
+}
+
+uint8_t decodeASCII(uint8_t asciiVal) {
+	int returnVal = -1;
+	if ((asciiVal >= 48) && (asciiVal <= 57)) {
+		returnVal = asciiVal - 48;
+	}
+	return returnVal;
+}
 /* USER CODE END 4 */
 
 /**

@@ -1,0 +1,6 @@
+../Core/Src/bme280.c:27:19:init_bme280	1
+../Core/Src/bme280.c:50:6:readTempHumPres	4
+../Core/Src/bme280.c:70:9:readBME280_id_reg	1
+../Core/Src/bme280.c:78:6:readBME280_calib	1
+../Core/Src/bme280.c:84:15:getBME280Config	3
+../Core/Src/bme280.c:94:6:swap	1

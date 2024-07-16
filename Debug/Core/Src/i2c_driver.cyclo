@@ -1,0 +1,4 @@
+../Core/Src/i2c_driver.c:10:19:i2c_read_reg	1
+../Core/Src/i2c_driver.c:16:19:i2c_burst_read	1
+../Core/Src/i2c_driver.c:24:19:i2c_burst_read_alt	1
+../Core/Src/i2c_driver.c:31:19:i2c_write_reg	1
