@@ -57,8 +57,8 @@ extern uint8_t data_buffer_tx[2][PAGE_SIZE];
 extern uint8_t buffer_ref;
 extern uint16_t byte_tracker;
 extern uint8_t accel_data[6];
+extern uint8_t bme280_data_0[6];
 extern uint8_t bme280_data_1[6];
-extern uint8_t bme280_data_2[6];
 
 extern uint8_t UARTRxData[2];
 extern uint32_t next_blank_page;
@@ -73,6 +73,7 @@ extern GPIO_Config cs_spi2;
 extern GPIO_Config wp_spi2;
 extern GPIO_Config jmp_flight;
 extern uint8_t sysStatus;
+extern uint8_t flight_state;
 
 /* USER CODE END EC */
 
@@ -110,6 +111,7 @@ void systemInit();
 void gpio_set_config();
 void handleUART();
 uint8_t decodeASCII(uint8_t asciiVal);
+uint8_t combine_system_status();
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

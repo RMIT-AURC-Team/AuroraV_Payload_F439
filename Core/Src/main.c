@@ -68,8 +68,8 @@ uint8_t tim7_overflow_flag;
 uint8_t data_buffer_tx[2][PAGE_SIZE];
 uint8_t buffer_tracker;
 uint8_t accel_data[6];
+uint8_t bme280_data_0[6];
 uint8_t bme280_data_1[6];
-uint8_t bme280_data_2[6];
 uint8_t buffer_ref;
 uint32_t next_blank_page;
 uint16_t byte_tracker;
@@ -84,6 +84,7 @@ GPIO_Config cs_spi2;
 GPIO_Config wp_spi2;
 GPIO_Config jmp_flight;
 uint8_t sysStatus;
+uint8_t flight_state;
 
 /* USER CODE END PV */
 
@@ -706,15 +707,13 @@ void systemInit() {
 	HAL_GPIO_WritePin(cs_spi2.GPIOx, cs_spi2.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
 
 	// Clean the data buffer and set all values to 0xFF
-	next_blank_page = 0;
-
 	clean_data_buffer(PAGE_SIZE, data_buffer_tx[0]);
 	clean_data_buffer(PAGE_SIZE, data_buffer_tx[1]);
 
 	for (uint8_t i = 0; i < 6; i++) {
 		accel_data[i] = 0x00;
+		bme280_data_0[i] = 0x00;
 		bme280_data_1[i] = 0x00;
-		bme280_data_2[i] = 0x00;
 	}
 
 	// Initialise the peripherals
@@ -736,6 +735,7 @@ void systemInit() {
 	uart2_rec_flag = 0;
 	tim6_overflow_flag = 0;
 	tim7_overflow_flag = 0;
+	flight_state = 0x00;
 
 	sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
 
@@ -858,6 +858,28 @@ uint8_t decodeASCII(uint8_t asciiVal) {
 		returnVal = asciiVal - 48;
 	}
 	return returnVal;
+}
+
+uint8_t combine_system_status() {
+    // Mask status to use only bits 4:0
+    uint8_t masked_status = sysStatus & 0x1F; // 00011111b
+
+    // Mask flight_state to use only bits 1:0
+    uint8_t masked_flight_state = flight_state & 0x03; // 00000011b
+
+    // Shift flight_state to the correct position (bits 6:5)
+    uint8_t shifted_flight_state = masked_flight_state << 5;
+
+    // Combine the masked_status and shifted_flight_state
+    uint8_t combined_value = masked_status | shifted_flight_state;
+
+    // Mask end_of_flash to get the last bit and shift it to bit 7
+    uint8_t end_of_flash_bit = (end_of_flash & 0x01) << 7;
+
+    // Combine with end_of_flash_bit
+    combined_value |= end_of_flash_bit;
+
+    return combined_value;
 }
 /* USER CODE END 4 */
 
