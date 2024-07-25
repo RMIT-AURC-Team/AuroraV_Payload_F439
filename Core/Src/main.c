@@ -62,9 +62,14 @@ I2C_HandleTypeDef *i2c_accel;
 I2C_HandleTypeDef *i2c_bme280;
 
 uint8_t UARTRxData[2];
-uint8_t uart2_rec_flag;
-uint8_t tim6_overflow_flag;
-uint8_t tim7_overflow_flag;
+Flag_State uart2_rec_flag;
+uint32_t CAN_TxMailbox;
+CAN_RxHeaderTypeDef CAN_RxHeader;
+uint8_t CAN_RxData[CAN_PL_LGTH];
+Flag_State CAN_RX_Flag;
+
+Flag_State tim6_overflow_flag;
+Flag_State tim7_overflow_flag;
 uint8_t data_buffer_tx[2][PAGE_SIZE];
 uint8_t buffer_tracker;
 uint8_t accel_data[6];
@@ -84,7 +89,7 @@ GPIO_Config cs_spi2;
 GPIO_Config wp_spi2;
 GPIO_Config jmp_flight;
 uint8_t sysStatus;
-uint8_t flight_state;
+Flight_State flight_state;
 
 /* USER CODE END PV */
 
@@ -160,26 +165,34 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  // Handle UART receive flag
-	  if(uart2_rec_flag == 0x01) {
+	  if(uart2_rec_flag == FLAG_SET) {
 		  handleUART();
+		  uart2_rec_flag = FLAG_RESET;
 	  }
 
-	  if (tim7_overflow_flag == 0x01) {
+	  // Handle CAN receive flag
+	  if(CAN_RX_Flag == FLAG_SET) {
+		  handleCAN();
+		  HAL_GPIO_TogglePin(led_green.GPIOx, led_green.GPIO_Pin);
+		  CAN_RX_Flag = FLAG_RESET;
+	  }
+
+	  if (tim7_overflow_flag == FLAG_SET) {
 		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 		  sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
-		  tim7_overflow_flag = 0x00;
+		  tim7_overflow_flag = FLAG_RESET;
 	  }
 
 	  // Handle Timer 6 overflow flag
-	  if(tim6_overflow_flag == 0x01) {
+	  if(tim6_overflow_flag == FLAG_SET) {
 		  readAllSensors(i2c_accel, i2c_bme280, &hrtc);
-		  tim6_overflow_flag = 0x00;
+		  tim6_overflow_flag = FLAG_RESET;
 	  }
 
 	  // Write data to flash when buffer is full
 	  if(byte_tracker > (PAGE_SIZE - READ_SIZE)) {
 		  GPIO_PinState flight_mode = HAL_GPIO_ReadPin(jmp_flight.GPIOx, jmp_flight.GPIO_Pin);
-		  if((flight_mode & !(end_of_flash)) == GPIO_PIN_SET) {
+		  if((flight_mode & !(end_of_flash)) == FLAG_SET) {
 			  HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_SET);		// Toggle LED when writing data
 
 			  write_data_spi_dma(data_buffer_tx[buffer_tracker], &hspi1, next_blank_page, cs_spi1);
@@ -218,9 +231,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 25;
@@ -263,7 +276,7 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 8;
+  hcan2.Init.Prescaler = 24;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_2TQ;
   hcan2.Init.TimeSeg1 = CAN_BS1_11TQ;
@@ -509,7 +522,7 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 41999;
+  htim6.Init.Prescaler = 20999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim6.Init.Period = 80;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -547,7 +560,7 @@ static void MX_TIM7_Init(void)
 
   /* USER CODE END TIM7_Init 1 */
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 41999;
+  htim7.Init.Prescaler = 20999;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim7.Init.Period = 4000;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -704,8 +717,11 @@ void systemInit() {
 	i2c_accel = &hi2c2;
 	i2c_bme280 = &hi2c1;
 
-	gpio_set_config();
+	configureCAN();
+	CAN_TxMailbox = 0;
+	clean_data_buffer(8, CAN_RxData);
 
+	gpio_set_config();
 	HAL_GPIO_WritePin(led_orange.GPIOx, led_orange.GPIO_Pin, GPIO_PIN_RESET);	// Turn LED off
 	HAL_GPIO_WritePin(cs_spi1.GPIOx, cs_spi1.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 1
 	HAL_GPIO_WritePin(cs_spi2.GPIOx, cs_spi2.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
@@ -735,18 +751,21 @@ void systemInit() {
 
 	buffer_ref = 0;
 	byte_tracker = 0;
-	end_of_flash = GPIO_PIN_RESET;
-	uart2_rec_flag = 0;
-	tim6_overflow_flag = 0;
-	tim7_overflow_flag = 0;
-	flight_state = 0x00;
+	end_of_flash = FLAG_RESET;
+	uart2_rec_flag = FLAG_RESET;
+	CAN_RX_Flag = FLAG_RESET;
+	tim6_overflow_flag = FLAG_RESET;
+	tim7_overflow_flag = FLAG_RESET;
+	flight_state = GROUND;
 
 	sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
 
 	send_uart_hex(&huart2, sysStatus);
 
-	// Initiate clocks, interrupts and DMA
+	// Initiate clocks, interrupts, CAN and DMA
 	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
+	HAL_CAN_Start(&hcan2);
+	HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 	initialise_rtc_default(&hrtc);
 	HAL_TIM_Base_Start_IT(&htim6);
 	HAL_TIM_Base_Start_IT(&htim7);
@@ -767,6 +786,30 @@ void gpio_set_config() {
 
 	// Flight Jumper GPIO Input
 	jmp_flight = create_GPIO_Config(GPIOB, GPIO_PIN_1);
+}
+
+void handleCAN() {
+	// Process "clock-sync". Change flight-state to "rocket_loaded"
+	if(CAN_RxHeader.StdId == CLK_SYNC_ID) {
+		flight_state = LOADED;
+		uint8_t TxData[1] = {0x00};
+		sendCAN_TxMessage(&hcan2, 1, TxData, &CAN_TxMailbox, CLK_SYNC_ID);
+	}
+
+	// Transmit values from BME280_0
+	else if(CAN_RxHeader.StdId == TX_BME280_0) {
+		sendCAN_TxMessage(&hcan2, 6, bme280_data_0, &CAN_TxMailbox, TX_BME280_0);
+	}
+
+	// Transmit values from BME280_1
+	else if(CAN_RxHeader.StdId == TX_BME280_1) {
+		sendCAN_TxMessage(&hcan2, 6, bme280_data_1, &CAN_TxMailbox, TX_BME280_1);
+	}
+
+	// Transmit values from accelerometer
+	else if(CAN_RxHeader.StdId == TX_ACCEL) {
+		sendCAN_TxMessage(&hcan2, 6, accel_data, &CAN_TxMailbox, TX_ACCEL);
+	}
 }
 
 void handleUART() {
@@ -851,7 +894,13 @@ void handleUART() {
 		readTempSensor(huart, decodeASCII(UARTRxData[1]));
 	}
 
-	uart2_rec_flag = 0x00;
+	/********************************** CAN Bus *******************************************/
+	// Send the second byte received over the CAN bus as a payload with id 0x700 (data_rx [0]= "n")
+	else if (UARTRxData[0] == 0x6E) {
+		uint8_t TxData[1] = {UARTRxData[1]};
+		sendCAN_TxMessage(&hcan2, 1, TxData, &CAN_TxMailbox, DUMMY_ID);
+	}
+
 	UARTRxData[0] = 0x00;
 	UARTRxData[1] = 0x00;
 }
@@ -885,6 +934,25 @@ uint8_t combine_system_status() {
 
     return combined_value;
 }
+
+void configureCAN() {
+	CAN_FilterTypeDef canFilterConfig;
+
+	canFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
+	canFilterConfig.FilterBank = 10;
+	canFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+	canFilterConfig.FilterIdHigh = 0x500 << 5;				// Filter only messages with ID 1X1XXXXXXXXb
+	canFilterConfig.FilterIdLow = 0x0000;
+	canFilterConfig.FilterMaskIdHigh = 0x500 << 5;
+	canFilterConfig.FilterMaskIdLow = 0x0000;
+	canFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+	canFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	canFilterConfig.SlaveStartFilterBank = 0;
+
+	HAL_CAN_ConfigFilter(&hcan2, &canFilterConfig);
+}
+
+
 /* USER CODE END 4 */
 
 /**

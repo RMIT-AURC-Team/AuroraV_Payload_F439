@@ -102,7 +102,6 @@ void resetSPIFlash(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Conf
 	software_reset(hspi, config);
 	send_uart_string(huart, "Flash Chip Reset\r\n");
 }
-
 /***************************************************************************************************************
  * I2C Accelerometer Functions
  */
@@ -205,6 +204,5 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 		byte_tracker = byte_tracker + (array_ptr - 1);
 	}
 }
-
 
 

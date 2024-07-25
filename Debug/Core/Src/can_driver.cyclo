@@ -1,0 +1,2 @@
+../Core/Src/can_driver.c:11:6:sendCAN_TxMessage	1
+../Core/Src/can_driver.c:16:21:configureTxHeader	1

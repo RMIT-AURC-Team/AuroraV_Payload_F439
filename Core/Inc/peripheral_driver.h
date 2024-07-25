@@ -13,6 +13,7 @@
 #include "data_management.h"
 #include "data_output_spi.h"
 #include "accelerometer.h"
+#include "can_driver.h"
 
 /**
  * 0 = Online; 1 = Offline;

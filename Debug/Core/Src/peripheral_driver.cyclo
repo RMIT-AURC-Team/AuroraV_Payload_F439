@@ -5,9 +5,9 @@
 ../Core/Src/peripheral_driver.c:83:6:readFlashManuSPI	1
 ../Core/Src/peripheral_driver.c:90:6:writePageSPI_W	2
 ../Core/Src/peripheral_driver.c:101:6:resetSPIFlash	1
-../Core/Src/peripheral_driver.c:109:6:checkAccelWhoAmI	1
-../Core/Src/peripheral_driver.c:114:6:accelToUART	2
-../Core/Src/peripheral_driver.c:123:6:readTempSensorID	1
-../Core/Src/peripheral_driver.c:127:6:readTempCalibration	5
-../Core/Src/peripheral_driver.c:149:6:readTempSensor	5
-../Core/Src/peripheral_driver.c:164:6:readAllSensors	5
+../Core/Src/peripheral_driver.c:108:6:checkAccelWhoAmI	1
+../Core/Src/peripheral_driver.c:113:6:accelToUART	2
+../Core/Src/peripheral_driver.c:122:6:readTempSensorID	1
+../Core/Src/peripheral_driver.c:126:6:readTempCalibration	5
+../Core/Src/peripheral_driver.c:148:6:readTempSensor	5
+../Core/Src/peripheral_driver.c:163:6:readAllSensors	5
