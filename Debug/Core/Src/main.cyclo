@@ -14,9 +14,9 @@
 ../Core/Src/main.c:710:6:clean_data_buffer	2
 ../Core/Src/main.c:716:6:systemInit	2
 ../Core/Src/main.c:774:6:gpio_set_config	1
-../Core/Src/main.c:791:6:handleCAN	5
-../Core/Src/main.c:815:6:handleUART	23
-../Core/Src/main.c:908:9:decodeASCII	3
-../Core/Src/main.c:916:9:combine_system_status	1
-../Core/Src/main.c:938:6:configureCAN	1
-../Core/Src/main.c:962:6:Error_Handler	1
+../Core/Src/main.c:791:6:handleCAN	6
+../Core/Src/main.c:820:6:handleUART	23
+../Core/Src/main.c:913:9:decodeASCII	3
+../Core/Src/main.c:921:9:combine_system_status	1
+../Core/Src/main.c:943:6:configureCAN	1
+../Core/Src/main.c:967:6:Error_Handler	1

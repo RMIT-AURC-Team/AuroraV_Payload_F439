@@ -810,6 +810,11 @@ void handleCAN() {
 	else if(CAN_RxHeader.StdId == TX_ACCEL) {
 		sendCAN_TxMessage(&hcan2, 6, accel_data, &CAN_TxMailbox, TX_ACCEL);
 	}
+
+	// Transmit values from accelerometer
+	else if(CAN_RxHeader.StdId == DUMMY_ID) {
+		send_uart_hex(&huart2, sysStatus);
+	}
 }
 
 void handleUART() {
