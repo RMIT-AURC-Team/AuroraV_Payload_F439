@@ -596,7 +596,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -920,22 +920,15 @@ uint8_t decodeASCII(uint8_t asciiVal) {
 
 uint8_t combine_system_status() {
     // Mask status to use only bits 4:0
-    uint8_t masked_status = sysStatus & 0x1F; // 00011111b
+    uint8_t masked_status = sysStatus & 0x1F; 			// 0001 1111b
 
-    // Mask flight_state to use only bits 1:0
-    uint8_t masked_flight_state = flight_state & 0x03; // 00000011b
-
-    // Shift flight_state to the correct position (bits 6:5)
+    // Mask flight_state to use only bits 2:0
+    uint8_t masked_flight_state = flight_state & 0x07; 	// 0000 0111b
+    // Shift flight_state to the correct position (bits 7:5)
     uint8_t shifted_flight_state = masked_flight_state << 5;
 
     // Combine the masked_status and shifted_flight_state
     uint8_t combined_value = masked_status | shifted_flight_state;
-
-    // Mask end_of_flash to get the last bit and shift it to bit 7
-    uint8_t end_of_flash_bit = (end_of_flash & 0x01) << 7;
-
-    // Combine with end_of_flash_bit
-    combined_value |= end_of_flash_bit;
 
     return combined_value;
 }

@@ -12,7 +12,6 @@ Each read contains the following 21 byte breakdown
 | [12:13]   | 2            | 16          | Humidity (Sensor 0)     | Little |
 | [14:15]   | 2            | 16          | Pressure (Sensor 1)     | Little |
 | [16:17]   | 2            | 16          | Temperature (Sensor 1)  | Little |
-| [18:19]   | 2            | 16          | Humidity (Sensor 1)     | Little |
-| [20 [7]]   | -            | 1           | End of Flash                 |  |
-| [20 [6:5]] | -            | 2           | State                   |  |
+| [18:19]   | 2            | 16          | Humidity (Sensor 1)     | Little |               |  |
+| [20 [7:5]] | -            | 3           | State                   |  |
 | [20 [4:0]] | -            | 5           | Status Code             |  |

@@ -53,7 +53,8 @@ typedef enum {
 typedef enum {
     GROUND,
     LOADED,
-	IN_FLIGHT,
+	ASCENT,
+	DESCEND,
 	RECOVERY
 } Flight_State;
 /* USER CODE END ET */

@@ -18,5 +18,5 @@
 ../Core/Src/main.c:820:6:handleUART	23
 ../Core/Src/main.c:913:9:decodeASCII	3
 ../Core/Src/main.c:921:9:combine_system_status	1
-../Core/Src/main.c:943:6:configureCAN	1
-../Core/Src/main.c:967:6:Error_Handler	1
+../Core/Src/main.c:936:6:configureCAN	1
+../Core/Src/main.c:960:6:Error_Handler	1
