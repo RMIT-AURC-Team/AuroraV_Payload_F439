@@ -173,7 +173,7 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 
 	// Store the new read in the buffer if there is space
 	if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
-		// Store the timestamp in the buffer (Big Endian)
+		// Store the timestamp in the buffer (Little Endian)
 		data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = (uint8_t) (time & 0xFF); 		// Least significant byte (LSB)
 		array_ptr += 1;
 		data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = (uint8_t) ((time >> 8) & 0xFF); // Most significant byte (MSB)
@@ -201,7 +201,7 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 		data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = combine_system_status();
 		array_ptr += 1;
 
-		byte_tracker = byte_tracker + (array_ptr - 1);
+		byte_tracker = byte_tracker + (array_ptr);
 	}
 }
 
