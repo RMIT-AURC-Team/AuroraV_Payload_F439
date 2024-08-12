@@ -294,6 +294,17 @@ void CAN2_RX0_IRQHandler(void)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CAN_RxHeader, CAN_RxData);
 	CAN_RX_Flag = FLAG_SET;
+
+	if(CAN_First_Msg == FLAG_RESET) {
+		CAN_First_Msg = FLAG_SET;
+	}
+}
+
+// Set the reset RTC flag on the rising edge of the jumper flight input pin
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if(GPIO_Pin == jmp_flight.GPIO_Pin) {
+		rtc_reset = FLAG_SET;
+	}
 }
 
 

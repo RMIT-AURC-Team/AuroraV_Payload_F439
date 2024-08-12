@@ -83,14 +83,17 @@ extern uint32_t CAN_TxMailbox;
 extern CAN_RxHeaderTypeDef CAN_RxHeader;
 extern uint8_t CAN_RxData[CAN_PL_LGTH];
 extern Flag_State CAN_RX_Flag;
+extern Flag_State CAN_First_Msg;
 
 extern GPIO_Config led_orange;
 extern GPIO_Config led_green;
+extern GPIO_Config status_led;
 extern GPIO_Config cs_spi1;
 extern GPIO_Config wp_spi1;
 extern GPIO_Config cs_spi2;
 extern GPIO_Config wp_spi2;
-extern GPIO_Config jmp_flight;
+extern volatile GPIO_Config jmp_flight;
+extern Flag_State rtc_reset;
 
 extern uint8_t sysStatus;
 extern Flight_State flight_state;
@@ -118,8 +121,8 @@ void Error_Handler(void);
 #define SPI1_WP_GPIO_Port GPIOA
 #define SPI1_CS_Pin GPIO_PIN_4
 #define SPI1_CS_GPIO_Port GPIOC
-#define JMP_Flight_Pin GPIO_PIN_1
-#define JMP_Flight_GPIO_Port GPIOB
+#define Flight_JMP_Pin GPIO_PIN_1
+#define Flight_JMP_GPIO_Port GPIOB
 #define LED3_Pin GPIO_PIN_14
 #define LED3_GPIO_Port GPIOB
 #define LED2_Pin GPIO_PIN_7

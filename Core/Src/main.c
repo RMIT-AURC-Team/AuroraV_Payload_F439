@@ -67,6 +67,7 @@ uint32_t CAN_TxMailbox;
 CAN_RxHeaderTypeDef CAN_RxHeader;
 uint8_t CAN_RxData[CAN_PL_LGTH];
 Flag_State CAN_RX_Flag;
+Flag_State CAN_First_Msg;
 
 Flag_State tim6_overflow_flag;
 Flag_State tim7_overflow_flag;
@@ -83,11 +84,14 @@ GPIO_PinState *end_of_flash_ptr;
 
 GPIO_Config led_orange;
 GPIO_Config led_green;
+GPIO_Config status_led;
 GPIO_Config cs_spi1;
 GPIO_Config wp_spi1;
 GPIO_Config cs_spi2;
 GPIO_Config wp_spi2;
-GPIO_Config jmp_flight;
+volatile GPIO_Config jmp_flight;
+Flag_State rtc_reset;
+
 uint8_t sysStatus;
 Flight_State flight_state;
 
@@ -164,6 +168,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  // If the flight jumper has been removed (GPIO rising edge), reset the time to 0.
+	  if(rtc_reset == FLAG_SET) {
+		  initialise_rtc_default(&hrtc);
+		  rtc_reset = FLAG_RESET;
+	  }
+
 	  // Handle UART receive flag
 	  if(uart2_rec_flag == FLAG_SET) {
 		  handleUART();
@@ -172,6 +183,10 @@ int main(void)
 
 	  // Handle CAN receive flag
 	  if(CAN_RX_Flag == FLAG_SET) {
+		  if((CAN_First_Msg == FLAG_SET) && (flight_state == GROUND)) {
+			  flight_state = LOADED;
+		  }
+
 		  handleCAN();
 		  HAL_GPIO_TogglePin(led_green.GPIOx, led_green.GPIO_Pin);
 		  CAN_RX_Flag = FLAG_RESET;
@@ -180,6 +195,12 @@ int main(void)
 	  if (tim7_overflow_flag == FLAG_SET) {
 		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 		  sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
+
+		  // TODO
+//		  if(sysStatus == 0x00) {
+//			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_SET);	// Turn LED off
+//		  }
+
 		  tim7_overflow_flag = FLAG_RESET;
 	  }
 
@@ -208,6 +229,7 @@ int main(void)
 	  }
 
 	  if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+		  // TODO - Error Handle if SPI1 not found
 		  next_blank_page = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
 	  }
   }
@@ -681,11 +703,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(SPI1_WP_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : JMP_Flight_Pin */
-  GPIO_InitStruct.Pin = JMP_Flight_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pin : Flight_JMP_Pin */
+  GPIO_InitStruct.Pin = Flight_JMP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(JMP_Flight_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(Flight_JMP_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED3_Pin LED2_Pin */
   GPIO_InitStruct.Pin = LED3_Pin|LED2_Pin;
@@ -719,10 +741,12 @@ void systemInit() {
 
 	configureCAN();
 	CAN_TxMailbox = 0;
+	CAN_First_Msg = FLAG_RESET;
 	clean_data_buffer(8, CAN_RxData);
 
 	gpio_set_config();
 	HAL_GPIO_WritePin(led_orange.GPIOx, led_orange.GPIO_Pin, GPIO_PIN_RESET);	// Turn LED off
+	HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_RESET);	// Turn LED off
 	HAL_GPIO_WritePin(cs_spi1.GPIOx, cs_spi1.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 1
 	HAL_GPIO_WritePin(cs_spi2.GPIOx, cs_spi2.GPIO_Pin, GPIO_PIN_SET);		// SET SPI CS High to disable bus 2
 
@@ -757,6 +781,7 @@ void systemInit() {
 	tim6_overflow_flag = FLAG_RESET;
 	tim7_overflow_flag = FLAG_RESET;
 	flight_state = GROUND;
+	rtc_reset = FLAG_RESET;
 
 	sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
 
@@ -775,6 +800,7 @@ void gpio_set_config() {
 	// Set LED gpio
 	led_orange = create_GPIO_Config(GPIOB, GPIO_PIN_14);	// Orange LED (Heartbeat LED)
 	led_green = create_GPIO_Config(GPIOB, GPIO_PIN_7);		// Green LED (Hard Drive LED)
+//	status_led = create_GPIO_Config(GPIOB, GPIO_PIN_7);		//	TODO
 
 	// SPI Flash 0 CS and WP
 	cs_spi1 = create_GPIO_Config(GPIOC, GPIO_PIN_4);		// Change for SRAD
