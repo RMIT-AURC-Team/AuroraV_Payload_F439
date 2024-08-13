@@ -41,10 +41,6 @@ void initialise_rtc_default(RTC_HandleTypeDef* hrtc) {
 
     // Disable access to the backup domain
     HAL_PWR_DisableBkUpAccess();
-
-    uint16_t time = getTimestampMilliseconds(hrtc);
-
-    uint16_t t = time;
 }
 
 uint32_t getTimestampMilliseconds(RTC_HandleTypeDef* hrtc) {
