@@ -43,7 +43,7 @@
 CAN_HandleTypeDef hcan2;
 
 I2C_HandleTypeDef hi2c1;
-I2C_HandleTypeDef hi2c2;
+I2C_HandleTypeDef hi2c3;
 
 RTC_HandleTypeDef hrtc;
 
@@ -106,10 +106,10 @@ static void MX_RTC_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_I2C2_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_CAN2_Init(void);
 static void MX_TIM7_Init(void);
+static void MX_I2C3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -153,10 +153,10 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM6_Init();
   MX_USART2_UART_Init();
-  MX_I2C2_Init();
   MX_SPI2_Init();
   MX_CAN2_Init();
   MX_TIM7_Init();
+  MX_I2C3_Init();
   /* USER CODE BEGIN 2 */
   systemInit();
   /* USER CODE END 2 */
@@ -196,10 +196,9 @@ int main(void)
 		  HAL_GPIO_TogglePin(led_orange.GPIOx, led_orange.GPIO_Pin);		// Toggle LED
 		  sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
 
-		  // TODO
-//		  if(sysStatus == 0x00) {
-//			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_SET);	// Turn LED off
-//		  }
+		  if(sysStatus == 0x00) {
+			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_SET);	// Turn LED off
+		  }
 
 		  tim7_overflow_flag = FLAG_RESET;
 	  }
@@ -368,50 +367,50 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief I2C2 Initialization Function
+  * @brief I2C3 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_I2C2_Init(void)
+static void MX_I2C3_Init(void)
 {
 
-  /* USER CODE BEGIN I2C2_Init 0 */
+  /* USER CODE BEGIN I2C3_Init 0 */
 
-  /* USER CODE END I2C2_Init 0 */
+  /* USER CODE END I2C3_Init 0 */
 
-  /* USER CODE BEGIN I2C2_Init 1 */
+  /* USER CODE BEGIN I2C3_Init 1 */
 
-  /* USER CODE END I2C2_Init 1 */
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.ClockSpeed = 100000;
-  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  /* USER CODE END I2C3_Init 1 */
+  hi2c3.Instance = I2C3;
+  hi2c3.Init.ClockSpeed = 100000;
+  hi2c3.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c3.Init.OwnAddress1 = 0;
+  hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c3.Init.OwnAddress2 = 0;
+  hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c3) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Analogue filter
   */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c3, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Digital filter
   */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c3, 0) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C2_Init 2 */
+  /* USER CODE BEGIN I2C3_Init 2 */
 
-  /* USER CODE END I2C2_Init 2 */
+  /* USER CODE END I2C3_Init 2 */
 
 }
 
@@ -680,7 +679,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(SPI1_WP_GPIO_Port, SPI1_WP_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED3_Pin|LED2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED3_Pin|LED1_Pin|LED2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : SPI2_WP_Pin */
   GPIO_InitStruct.Pin = SPI2_WP_Pin;
@@ -709,8 +708,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Flight_JMP_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LED3_Pin LED2_Pin */
-  GPIO_InitStruct.Pin = LED3_Pin|LED2_Pin;
+  /*Configure GPIO pins : LED3_Pin LED1_Pin LED2_Pin */
+  GPIO_InitStruct.Pin = LED3_Pin|LED1_Pin|LED2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -740,7 +739,7 @@ void clean_data_buffer(uint16_t array_size, uint8_t data_array[array_size]) {
 }
 
 void systemInit() {
-	i2c_accel = &hi2c2;
+	i2c_accel = &hi2c3;
 	i2c_bme280 = &hi2c1;
 
 	configureCAN();
@@ -803,8 +802,8 @@ void systemInit() {
 void gpio_set_config() {
 	// Set LED gpio
 	led_orange = create_GPIO_Config(GPIOB, GPIO_PIN_14);	// Orange LED (Heartbeat LED)
-	led_green = create_GPIO_Config(GPIOB, GPIO_PIN_7);		// Green LED (Hard Drive LED)
-//	status_led = create_GPIO_Config(GPIOB, GPIO_PIN_7);		//	TODO
+	led_green = create_GPIO_Config(GPIOB, GPIO_PIN_13);		// Green LED (Hard Drive LED)
+	status_led = create_GPIO_Config(GPIOB, GPIO_PIN_12);	// Status LED
 
 	// SPI Flash 0 CS and WP
 	cs_spi1 = create_GPIO_Config(GPIOC, GPIO_PIN_4);		// Change for SRAD
