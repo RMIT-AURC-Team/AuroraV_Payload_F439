@@ -24,10 +24,27 @@ RTC_DateTypeDef defaultDate = {
 };
 
 void initialise_rtc_default(RTC_HandleTypeDef* hrtc) {
-	// Reset RTC on boot
-	HAL_RTC_MspInit(hrtc); // Initialize RTC hardware
-	HAL_RTC_SetTime(hrtc, &defaultTime, RTC_FORMAT_BIN); // Set default time
-	HAL_RTC_SetDate(hrtc, &defaultDate, RTC_FORMAT_BIN); // Set default date
+    // Enable access to the backup domain
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+
+    // Reset the RTC
+    __HAL_RCC_BACKUPRESET_FORCE();
+    __HAL_RCC_BACKUPRESET_RELEASE();
+
+    // Initialize RTC hardware
+    HAL_RTC_MspInit(hrtc);
+
+    // Set default time and date
+    HAL_RTC_SetTime(hrtc, &defaultTime, RTC_FORMAT_BIN);
+    HAL_RTC_SetDate(hrtc, &defaultDate, RTC_FORMAT_BIN);
+
+    // Disable access to the backup domain
+    HAL_PWR_DisableBkUpAccess();
+
+    uint16_t time = getTimestampMilliseconds(hrtc);
+
+    uint16_t t = time;
 }
 
 uint32_t getTimestampMilliseconds(RTC_HandleTypeDef* hrtc) {
@@ -46,4 +63,5 @@ uint32_t getTimestampMilliseconds(RTC_HandleTypeDef* hrtc) {
 
     return timestampMilliseconds;
 }
+
 

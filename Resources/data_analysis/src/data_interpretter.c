@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    FILE *csv_fp = fopen("output.csv", "w");
+    FILE *csv_fp = fopen("log/output.csv", "w");
     if (!csv_fp) {
         perror("Failed to open CSV file");
         fclose(bin_fp);

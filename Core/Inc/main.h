@@ -123,6 +123,7 @@ void Error_Handler(void);
 #define SPI1_CS_GPIO_Port GPIOC
 #define Flight_JMP_Pin GPIO_PIN_1
 #define Flight_JMP_GPIO_Port GPIOB
+#define Flight_JMP_EXTI_IRQn EXTI1_IRQn
 #define LED3_Pin GPIO_PIN_14
 #define LED3_GPIO_Port GPIOB
 #define LED2_Pin GPIO_PIN_7
