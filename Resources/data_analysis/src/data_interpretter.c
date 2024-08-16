@@ -29,9 +29,9 @@ float convertToAccel(int16_t rawAccel) {
 Record convertRaw(RawRecord *rec, BME280_CalibData *calib0, BME280_CalibData *calib1) {
     Record converted;
     converted.timestamp = swap16(rec->timestamp);
-    converted.x_accel = convertToAccel(swap16(rec->x_accel));
-    converted.y_accel = convertToAccel(swap16(rec->y_accel));
-    converted.z_accel = convertToAccel(swap16(rec->z_accel));
+    converted.x_accel = convertToAccel(rec->x_accel);
+    converted.y_accel = convertToAccel(rec->y_accel);
+    converted.z_accel = convertToAccel(rec->z_accel);
 
     BME280_TempData tempData0 = compensate_T(swap16(rec->temperature0), calib0->dig_T1, calib0->dig_T2, calib0->dig_T3);
     converted.temperature0 = tempData0.temperature;
