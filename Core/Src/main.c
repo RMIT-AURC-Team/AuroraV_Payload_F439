@@ -125,6 +125,7 @@ static void MX_I2C3_Init(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -252,12 +253,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 25;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 16;
   RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
@@ -858,11 +860,18 @@ void handleUART() {
 /***************************** SPI Flash ************************************************/
 	// Erase specified flash chip (data_rx[0]  = "e")
 	else if (UARTRxData[0] == 0x65) {
+		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin, GPIO_PIN_SET);		// Activate the "write out" LED
 		if(decodeASCII(UARTRxData[1]) == 0) {
 			eraseFlashSPI(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
 			eraseFlashSPI(&hspi2, huart, cs_spi2);
 		}
+		int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+		int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+
+		// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
+		next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin,GPIO_PIN_RESET);	// Deactivate the "write out" LED
 	}
 
 	// Read data from specified flash chip (data_rx[0] = "r")

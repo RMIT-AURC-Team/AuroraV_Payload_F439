@@ -50,15 +50,12 @@ void heartbeatUART(UART_HandleTypeDef *huart) {
 /***************************************************************************************************************
  * SPI Flash Functions
  */
-void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config config) {
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Activate the "write out" LED
-	if (erase_chip_spi(hspi, config) == HAL_OK) {
+void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select) {
+	if (erase_chip_spi(hspi, chip_select) == HAL_OK) {
 		send_uart_string(huart, "Successful Chip Erase\r\n");
-		next_blank_page = find_next_blank_page(hspi, &end_of_flash, config);
 	} else {
 		send_uart_string(huart, "Error during chip erase. Please check the connection and try again.\r\n");
 	}
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_RESET);	// Deactivate the "write out" LED
 }
 
 void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config config) {

@@ -17,9 +17,9 @@
 #define START_MEAS	0x08
 
 // Define the X, Y and Z offsets
-#define OFFSETX 0x0000
-#define OFFSETY 0x0000
-#define OFFSETZ 0x0000
+#define OFFSETX 0x0002
+#define OFFSETY 0x0001
+#define OFFSETZ 0x0001
 
 HAL_StatusTypeDef init_accel(I2C_HandleTypeDef* hi2c);
 uint8_t readAccel_whoami(I2C_HandleTypeDef* hi2c);

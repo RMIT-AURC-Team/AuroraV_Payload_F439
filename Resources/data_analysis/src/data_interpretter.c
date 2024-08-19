@@ -28,29 +28,29 @@ float convertToAccel(int16_t rawAccel) {
 
 Record convertRaw(RawRecord *rec, BME280_CalibData *calib0, BME280_CalibData *calib1) {
     Record converted;
-    converted.timestamp = swap16(rec->timestamp);
+    converted.timestamp = rec->timestamp;
     converted.x_accel = convertToAccel(rec->x_accel);
     converted.y_accel = convertToAccel(rec->y_accel);
     converted.z_accel = convertToAccel(rec->z_accel);
 
-    BME280_TempData tempData0 = compensate_T(swap16(rec->temperature0), calib0->dig_T1, calib0->dig_T2, calib0->dig_T3);
+    BME280_TempData tempData0 = compensate_T(rec->temperature0, calib0->dig_T1, calib0->dig_T2, calib0->dig_T3);
     converted.temperature0 = tempData0.temperature;
-    converted.pressure0 = compensate_P(tempData0.t_fine, swap16(rec->pressure0), 
+    converted.pressure0 = compensate_P(tempData0.t_fine, rec->pressure0, 
                 calib0->dig_P1, calib0->dig_P2, calib0->dig_P3, calib0->dig_P4, calib0->dig_P5, 
                 calib0->dig_P6, calib0->dig_P7, calib0->dig_P8, calib0->dig_P9);
-    converted.humidity0 = compensate_H(tempData0.t_fine, swap16(rec->humidity0), calib0->dig_H1, calib0->dig_H2, 
+    converted.humidity0 = compensate_H(tempData0.t_fine, rec->humidity0, calib0->dig_H1, calib0->dig_H2, 
                 calib0->dig_H3, calib0->dig_H4, calib0->dig_H5, calib0->dig_H6);
     
-    BME280_TempData tempData1 = compensate_T(swap16(rec->temperature1), calib1->dig_T1, calib1->dig_T2, calib1->dig_T3);
+    BME280_TempData tempData1 = compensate_T(rec->temperature1, calib1->dig_T1, calib1->dig_T2, calib1->dig_T3);
     converted.temperature1 = tempData1.temperature;
-    converted.pressure1 = compensate_P(tempData1.t_fine, swap16(rec->pressure1), 
+    converted.pressure1 = compensate_P(tempData1.t_fine, rec->pressure1, 
                 calib1->dig_P1, calib1->dig_P2, calib1->dig_P3, calib1->dig_P4, calib1->dig_P5, 
                 calib1->dig_P6, calib1->dig_P7, calib1->dig_P8, calib1->dig_P9);
-    converted.humidity1 = compensate_H(tempData1.t_fine, swap16(rec->humidity1), calib1->dig_H1, calib1->dig_H2,
+    converted.humidity1 = compensate_H(tempData1.t_fine, rec->humidity1, calib1->dig_H1, calib1->dig_H2,
                 calib1->dig_H3, calib1->dig_H4, calib1->dig_H5, calib1->dig_H6);
     
     converted.state = rec->status_byte >> 5;
-    converted.status_code = rec->status_byte & 0x1F;
+    converted.status_code = hex_to_ascii_string(rec->status_byte & 0x1F);
     return converted;
 }
 
@@ -67,11 +67,26 @@ uint16_t swap16(uint16_t val) {
     return (val << 8) | (val >> 8);
 }
 
+char* hex_to_ascii_string(unsigned int hex_value) {
+    // Allocate memory for the output string (5 characters for "0xFF" + null terminator)
+    char *output_str = (char*)malloc(6 * sizeof(char));
+    
+    if (output_str == NULL) {
+        // Handle memory allocation failure
+        return NULL;
+    }
+
+    // Convert the hexadecimal value to its ASCII string representation
+    sprintf(output_str, "0x%02X", hex_value);
+
+    return output_str;
+}
+
 // Function to write the record to CSV
 void write_record_to_csv(FILE *fp, Record *rec) {
     // Write CSV row
     fprintf(fp,
-            "%u,%f,%f,%f,%f,%f,%f,%f,%f,%f,%u,%u\n",
+            "%u,%f,%f,%f,%f,%f,%f,%f,%f,%f,%u,%s\n",
             rec->timestamp,
             rec->x_accel,
             rec->y_accel,
@@ -135,7 +150,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    FILE *csv_fp = fopen("log/output.csv", "w");
+    FILE *csv_fp = fopen("graphs/output.csv", "w");
     if (!csv_fp) {
         perror("Failed to open CSV file");
         fclose(bin_fp);

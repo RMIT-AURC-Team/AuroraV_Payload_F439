@@ -1,0 +1,2 @@
+../Core/Src/rtc.c:26:6:initialise_rtc_default	1
+../Core/Src/rtc.c:46:10:getTimestampMilliseconds	1

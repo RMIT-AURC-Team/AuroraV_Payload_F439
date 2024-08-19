@@ -51,7 +51,7 @@ typedef struct {
     double temperature1;
     double humidity1;
     enum FlightState state;
-    uint8_t status_code;
+    char* status_code;
 } Record;
 
 int read_record(FILE *fp, RawRecord *rec);
@@ -73,6 +73,7 @@ int twos_complement(uint16_t value, int bits);
 
 // Function to swap the bytes of a 16-bit value
 uint16_t swap16(uint16_t val);
+char* hex_to_ascii_string(unsigned int hex_value);
 void write_record_to_csv(FILE *fp, Record *rec);
 
 #endif  // DATA_INTERPRETTER_H

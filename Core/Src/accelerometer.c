@@ -37,7 +37,7 @@ HAL_StatusTypeDef init_accel(I2C_HandleTypeDef* hi2c) {
 	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &BW_RATE_REG, MASK_1kHz);
 
 	// Write the offset registers
-//	ret = writeOffset(hi2c);
+	ret = writeOffset(hi2c);
 
 	// Start measuring
 	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &POWER_CTL_REG, START_MEAS);
