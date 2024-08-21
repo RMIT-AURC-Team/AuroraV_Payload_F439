@@ -1,0 +1,27 @@
+var group__CMSIS__TPI_structTPI__Type =
+[
+    [ "SSPSR", "group__CMSIS__core__DebugFunctions.html#ga1585b32a1ab860d0d77803475d08c7c6", null ],
+    [ "CSPSR", "group__CMSIS__core__DebugFunctions.html#gabf4a378b17278d98d2a5f9315fce7a5e", null ],
+    [ "ACPR", "group__CMSIS__core__DebugFunctions.html#ga49a770cf0b7ec970f919f8ac22634fff", null ],
+    [ "SPPR", "group__CMSIS__core__DebugFunctions.html#gae9673e1acb75a46ed9852fd7a557cb7d", null ],
+    [ "FFSR", "group__CMSIS__core__DebugFunctions.html#ga2a049b49e9da6772d38166397ce8fc70", null ],
+    [ "FFCR", "group__CMSIS__core__DebugFunctions.html#gafe3ca1410c32188d26be24c4ee9e180c", null ],
+    [ "PSCR", "group__CMSIS__core__DebugFunctions.html#ga3fbc5c84a2a24bd6195e970ff8898024", null ],
+    [ "LAR", "group__CMSIS__core__DebugFunctions.html#gacc9e51f871c357a9094105435b150d13", null ],
+    [ "LSR", "group__CMSIS__core__DebugFunctions.html#ga7219432d03f6cd1d220f4fe10aef4880", null ],
+    [ "TYPE", "group__CMSIS__core__DebugFunctions.html#gaee6e8f4171b9024d763ba87f3ce92e73", null ],
+    [ "DEVTYPE", "group__CMSIS__core__DebugFunctions.html#ga81f643aff0e4bed2638a618e2b1fd3bb", null ],
+    [ "TRIGGER", "group__CMSIS__Core__SysTickFunctions.html#ga5590387d8f44b477fd69951a737b0d7e", null ],
+    [ "ITFTTD0", "group__CMSIS__Core__SysTickFunctions.html#ga986b12d0c4f33d326504fe705228bd7b", null ],
+    [ "ITATBCTR2", "group__CMSIS__Core__SysTickFunctions.html#ga49859dd8fc90723f440ee4e750a3d752", null ],
+    [ "ITATBCTR0", "group__CMSIS__Core__SysTickFunctions.html#ga9954c088735caa505adc113f6c64d812", null ],
+    [ "ITFTTD1", "group__CMSIS__Core__SysTickFunctions.html#ga4ab517b49e30734dced6bed9befb1f4a", null ],
+    [ "ITCTRL", "group__CMSIS__Core__SysTickFunctions.html#gae6b7f224b1c19c636148f991cc8db611", null ],
+    [ "CLAIMSET", "group__CMSIS__Core__SysTickFunctions.html#ga974d17c9a0b0b1b894e9707d158b0fbe", null ],
+    [ "CLAIMCLR", "group__CMSIS__Core__SysTickFunctions.html#ga1f74caab7b0a7afa848c63ce8ebc6a6f", null ],
+    [ "DEVID", "group__CMSIS__Core__SysTickFunctions.html#gaaed316dacef669454fa035e04ee90eca", null ],
+    [ "FSCR", "group__CMSIS__core__DebugFunctions.html#ga36370b2b0879b7b497f6dd854ba02873", null ],
+    [ "FIFO0", "group__CMSIS__core__DebugFunctions.html#gace73d78eff029b698e11cd5cf3efaf94", null ],
+    [ "ITATBCTR2", "group__CMSIS__core__DebugFunctions.html#ga97fb8816ad001f4910de095aa17d9db5", null ],
+    [ "FIFO1", "group__CMSIS__core__DebugFunctions.html#gabad7737b3d46cc6d4813d37171d29745", null ]
+];
