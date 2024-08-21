@@ -199,6 +199,8 @@ int main(void)
 
 		  if(sysStatus == 0x00) {
 			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_SET);	// Turn LED off
+		  } else {
+			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_RESET);
 		  }
 
 		  tim7_overflow_flag = FLAG_RESET;
