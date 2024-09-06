@@ -1,0 +1,5 @@
+../Core/Src/spi_driver.c:13:19:spi_sendOp_readByte	1
+../Core/Src/spi_driver.c:22:19:perform_operation	1
+../Core/Src/spi_driver.c:31:19:spi_read_data	1
+../Core/Src/spi_driver.c:54:19:spi_write_data	1
+../Core/Src/spi_driver.c:78:19:spi_write_data_dma	1

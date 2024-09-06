@@ -11,8 +11,6 @@
 #include "stm32f4xx_hal.h"
 #include "i2c_driver.h"
 
-#define MASK_1kHz 		0x3F
-#define MASK_100G 		0x00
 #define CTRL_MEAS_MSK 	0x27
 #define CTRL_HUM_MSK  	0x01
 #define RST		  		0xB6

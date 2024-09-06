@@ -1,0 +1,78 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+# Toolchain: GNU Tools for STM32 (12.3.rel1)
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+C_SRCS += \
+../Core/Src/accelerometer.c \
+../Core/Src/bme280.c \
+../Core/Src/can_driver.c \
+../Core/Src/data_management.c \
+../Core/Src/data_output_spi.c \
+../Core/Src/data_read_spi.c \
+../Core/Src/gpio_struct.c \
+../Core/Src/i2c_driver.c \
+../Core/Src/main.c \
+../Core/Src/peripheral_driver.c \
+../Core/Src/rtc.c \
+../Core/Src/spi_driver.c \
+../Core/Src/stm32f4xx_hal_msp.c \
+../Core/Src/stm32f4xx_it.c \
+../Core/Src/syscalls.c \
+../Core/Src/sysmem.c \
+../Core/Src/system_stm32f4xx.c \
+../Core/Src/uart_transmit.c 
+
+OBJS += \
+./Core/Src/accelerometer.o \
+./Core/Src/bme280.o \
+./Core/Src/can_driver.o \
+./Core/Src/data_management.o \
+./Core/Src/data_output_spi.o \
+./Core/Src/data_read_spi.o \
+./Core/Src/gpio_struct.o \
+./Core/Src/i2c_driver.o \
+./Core/Src/main.o \
+./Core/Src/peripheral_driver.o \
+./Core/Src/rtc.o \
+./Core/Src/spi_driver.o \
+./Core/Src/stm32f4xx_hal_msp.o \
+./Core/Src/stm32f4xx_it.o \
+./Core/Src/syscalls.o \
+./Core/Src/sysmem.o \
+./Core/Src/system_stm32f4xx.o \
+./Core/Src/uart_transmit.o 
+
+C_DEPS += \
+./Core/Src/accelerometer.d \
+./Core/Src/bme280.d \
+./Core/Src/can_driver.d \
+./Core/Src/data_management.d \
+./Core/Src/data_output_spi.d \
+./Core/Src/data_read_spi.d \
+./Core/Src/gpio_struct.d \
+./Core/Src/i2c_driver.d \
+./Core/Src/main.d \
+./Core/Src/peripheral_driver.d \
+./Core/Src/rtc.d \
+./Core/Src/spi_driver.d \
+./Core/Src/stm32f4xx_hal_msp.d \
+./Core/Src/stm32f4xx_it.d \
+./Core/Src/syscalls.d \
+./Core/Src/sysmem.d \
+./Core/Src/system_stm32f4xx.d \
+./Core/Src/uart_transmit.d 
+
+
+# Each subdirectory must supply rules for building sources it contributes
+Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
+	arm-none-eabi-gcc "$<" -mcpu=cortex-m4 -std=gnu11 -DUSE_HAL_DRIVER -DSTM32F439xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
+
+clean: clean-Core-2f-Src
+
+clean-Core-2f-Src:
+	-$(RM) ./Core/Src/accelerometer.cyclo ./Core/Src/accelerometer.d ./Core/Src/accelerometer.o ./Core/Src/accelerometer.su ./Core/Src/bme280.cyclo ./Core/Src/bme280.d ./Core/Src/bme280.o ./Core/Src/bme280.su ./Core/Src/can_driver.cyclo ./Core/Src/can_driver.d ./Core/Src/can_driver.o ./Core/Src/can_driver.su ./Core/Src/data_management.cyclo ./Core/Src/data_management.d ./Core/Src/data_management.o ./Core/Src/data_management.su ./Core/Src/data_output_spi.cyclo ./Core/Src/data_output_spi.d ./Core/Src/data_output_spi.o ./Core/Src/data_output_spi.su ./Core/Src/data_read_spi.cyclo ./Core/Src/data_read_spi.d ./Core/Src/data_read_spi.o ./Core/Src/data_read_spi.su ./Core/Src/gpio_struct.cyclo ./Core/Src/gpio_struct.d ./Core/Src/gpio_struct.o ./Core/Src/gpio_struct.su ./Core/Src/i2c_driver.cyclo ./Core/Src/i2c_driver.d ./Core/Src/i2c_driver.o ./Core/Src/i2c_driver.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/peripheral_driver.cyclo ./Core/Src/peripheral_driver.d ./Core/Src/peripheral_driver.o ./Core/Src/peripheral_driver.su ./Core/Src/rtc.cyclo ./Core/Src/rtc.d ./Core/Src/rtc.o ./Core/Src/rtc.su ./Core/Src/spi_driver.cyclo ./Core/Src/spi_driver.d ./Core/Src/spi_driver.o ./Core/Src/spi_driver.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su ./Core/Src/uart_transmit.cyclo ./Core/Src/uart_transmit.d ./Core/Src/uart_transmit.o ./Core/Src/uart_transmit.su
+
+.PHONY: clean-Core-2f-Src
+

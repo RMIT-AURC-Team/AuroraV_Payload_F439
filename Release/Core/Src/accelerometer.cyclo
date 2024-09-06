@@ -1,0 +1,4 @@
+../Core/Src/accelerometer.c:47:6:readAccelerometer	1
+../Core/Src/accelerometer.c:55:9:readAccel_whoami	1
+../Core/Src/accelerometer.c:62:19:writeOffset	1
+../Core/Src/accelerometer.c:27:19:init_accel	1

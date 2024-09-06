@@ -13,17 +13,17 @@ uint8_t systemStatus(SPI_HandleTypeDef *hspi1, SPI_HandleTypeDef *hspi2, I2C_Han
 	uint8_t retVal = 0x00;
 
 	// Check BME280_1
-	if(readBME280_id_reg(hi2c2, 1) != 0x60) {			// Expected 0x60
+	if(readBME280_id_reg(hi2c1, 1) != 0x60) {			// Expected 0x60
 		retVal  = retVal | 0x10;
 	}
 
 	// Check BME280_0
-	if(readBME280_id_reg(hi2c2, 0) != 0x60) {			// Expected 0x60
+	if(readBME280_id_reg(hi2c1, 0) != 0x60) {			// Expected 0x60
 		retVal  = retVal | 0x08;
 	}
 
 	// Check Accelerometer
-	if(readAccel_whoami(hi2c1) != 0x32) {				// Expected 0x32
+	if(readAccel_whoami(hi2c2) != 0xE5) {				// Expected 0xE5
 		retVal  = retVal | 0x04;
 	}
 
@@ -50,15 +50,12 @@ void heartbeatUART(UART_HandleTypeDef *huart) {
 /***************************************************************************************************************
  * SPI Flash Functions
  */
-void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config config) {
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);		// Activate the "write out" LED
-	if (erase_chip_spi(hspi, config) == HAL_OK) {
+void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select) {
+	if (erase_chip_spi(hspi, chip_select) == HAL_OK) {
 		send_uart_string(huart, "Successful Chip Erase\r\n");
-		next_blank_page = find_next_blank_page(hspi, &end_of_flash, config);
 	} else {
 		send_uart_string(huart, "Error during chip erase. Please check the connection and try again.\r\n");
 	}
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_RESET);	// Deactivate the "write out" LED
 }
 
 void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config config) {
@@ -102,7 +99,6 @@ void resetSPIFlash(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Conf
 	software_reset(hspi, config);
 	send_uart_string(huart, "Flash Chip Reset\r\n");
 }
-
 /***************************************************************************************************************
  * I2C Accelerometer Functions
  */
@@ -149,11 +145,11 @@ void readTempCalibration(I2C_HandleTypeDef* hi2c, UART_HandleTypeDef *huart, uin
 void readTempSensor(UART_HandleTypeDef *huart, uint8_t tempNo) {
 	if (tempNo == 0) {
 		for (int i = 0; i < 6; i++) {
-			send_uart_hex(huart, bme280_data_1[i]);
+			send_uart_hex(huart, bme280_data_0[i]);
 		}
 	} else if (tempNo == 1) {
 		for (int i = 0; i < 6; i++) {
-			send_uart_hex(huart, bme280_data_2[i]);
+			send_uart_hex(huart, bme280_data_1[i]);
 		}
 	}
 }
@@ -166,36 +162,44 @@ void readAllSensors(I2C_HandleTypeDef* hi2c_accel, I2C_HandleTypeDef* hi2c_temp,
 	readAccelerometer(accel_data, hi2c_accel);
 
 	// Read BME280 Data
-	readTempHumPres(bme280_data_1, hi2c_temp, 0);
-	readTempHumPres(bme280_data_2, hi2c_temp, 1);
+	readTempHumPres(bme280_data_0, hi2c_temp, 0);
+	readTempHumPres(bme280_data_1, hi2c_temp, 1);
 
 	uint16_t time = getTimestampMilliseconds(hrtc);
 	uint8_t array_ptr = 0;
 
 	// Store the new read in the buffer if there is space
 	if (byte_tracker < (PAGE_SIZE - READ_SIZE)) {
-		data_buffer_tx[buffer_tracker][byte_tracker + 0] = (uint8_t) ((time >> 8) & 0xFF);
-		data_buffer_tx[buffer_tracker][byte_tracker + 1] = (uint8_t) (time & 0xFF); // Least significant byte (LSB)
+		// Store the timestamp in the buffer (Little Endian)
+		data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = (uint8_t) (time & 0xFF); 		// Least significant byte (LSB)
+		array_ptr += 1;
+		data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = (uint8_t) ((time >> 8) & 0xFF); // Most significant byte (MSB)
+		array_ptr += 1;
 
-		array_ptr += 2;
+		// Store the accelerometer data
 		for (int i = 0; i < 6; i++) {
 		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = accel_data[i];
 		  array_ptr += 1;
 		}
 
+		// Store the BME280_0 Data
+		for (int i = 0; i < 6; i++) {
+		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = bme280_data_0[i];
+		  array_ptr += 1;
+		}
+
+		// Store the BME280_1 Data
 		for (int i = 0; i < 6; i++) {
 		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = bme280_data_1[i];
 		  array_ptr += 1;
 		}
 
-		for (int i = 0; i < 6; i++) {
-		  data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = bme280_data_2[i];
-		  array_ptr += 1;
-		}
+		// Store the flight state and peripheral status in the final byte
+		data_buffer_tx[buffer_tracker][byte_tracker + array_ptr] = combine_system_status();
+		array_ptr += 1;
 
-		byte_tracker = byte_tracker + READ_SIZE;
+		byte_tracker = byte_tracker + (array_ptr);
 	}
 }
-
 
 
