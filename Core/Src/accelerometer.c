@@ -12,9 +12,11 @@ uint8_t BW_RATE_REG				= 0x2C;
 uint8_t POWER_CTL_REG			= 0x2D;
 uint8_t DATA_FORMAT_REG			= 0x31;
 uint8_t WHOAMI 					= 0x00;
+
 uint8_t OFFSET_REG_X			= 0x1E;
 uint8_t OFFSET_REG_Y			= 0x1F;
 uint8_t OFFSET_REG_Z			= 0x20;
+
 uint8_t OUT_X_L 				= 0x32;
 uint8_t OUT_X_H 				= 0x33;
 uint8_t OUT_Y_L 				= 0x34;
@@ -35,7 +37,7 @@ HAL_StatusTypeDef init_accel(I2C_HandleTypeDef* hi2c) {
 	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &BW_RATE_REG, MASK_1kHz);
 
 	// Write the offset registers
-//	ret = writeOffset(hi2c);
+	ret = writeOffset(hi2c);
 
 	// Start measuring
 	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &POWER_CTL_REG, START_MEAS);
@@ -60,18 +62,9 @@ uint8_t readAccel_whoami(I2C_HandleTypeDef* hi2c) {
 HAL_StatusTypeDef writeOffset(I2C_HandleTypeDef* hi2c) {
 	HAL_StatusTypeDef ret;
 
-	// Define the X, Y and Z offsets
-//	uint16_t offsetX = 0x0000;
-//	uint16_t offsetY = 0x0000;
-//	uint16_t offsetZ = 0x0000;
-
-	uint16_t offsetX = 0xFF;
-	uint16_t offsetY = 0x04;
-	uint16_t offsetZ = 0x0D;
-
-	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &OFFSET_REG_X, offsetX);
-	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &OFFSET_REG_Y, offsetY);
-	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &OFFSET_REG_Z, offsetZ);
+	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &OFFSET_REG_X, OFFSETX);
+	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &OFFSET_REG_Y, OFFSETY);
+	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &OFFSET_REG_Z, OFFSETZ);
 
 	return ret;
 }

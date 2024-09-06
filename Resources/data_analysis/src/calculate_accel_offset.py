@@ -1,11 +1,11 @@
-def grams_to_hex(g):
-    # Convert grams to milligrams
+def gs_to_hex(g):
+    # Convert gravities to milligravities
     mg = g * 1000
 
     # Scale factor
     scale_factor = 195
 
-    # Convert milligrams to LSB
+    # Convert milligravities to LSB
     lsb = round(mg / scale_factor)
 
     # If the value is negative, convert to two's complement
@@ -20,4 +20,4 @@ def grams_to_hex(g):
 
 # Take a 16 bit floating point value from standard input
 value = float(input("Enter a 8 bit floating point value: "))
-grams_to_hex(value)
+gs_to_hex(value)

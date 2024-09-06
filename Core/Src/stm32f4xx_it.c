@@ -55,6 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern CAN_HandleTypeDef hcan2;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 extern DMA_HandleTypeDef hdma_spi2_tx;
 extern TIM_HandleTypeDef htim6;
@@ -206,6 +207,20 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles EXTI line1 interrupt.
+  */
+void EXTI1_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI1_IRQn 0 */
+
+  /* USER CODE END EXTI1_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(Flight_JMP_Pin);
+  /* USER CODE BEGIN EXTI1_IRQn 1 */
+
+  /* USER CODE END EXTI1_IRQn 1 */
+}
+
+/**
   * @brief This function handles DMA1 stream4 global interrupt.
   */
 void DMA1_Stream4_IRQHandler(void)
@@ -243,7 +258,7 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
-  tim6_overflow_flag = 0x01;
+  tim6_overflow_flag = FLAG_SET;
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
@@ -257,7 +272,7 @@ void TIM7_IRQHandler(void)
   /* USER CODE END TIM7_IRQn 0 */
   HAL_TIM_IRQHandler(&htim7);
   /* USER CODE BEGIN TIM7_IRQn 1 */
-  tim7_overflow_flag = 0x01;
+  tim7_overflow_flag = FLAG_SET;
   /* USER CODE END TIM7_IRQn 1 */
 }
 
@@ -275,7 +290,38 @@ void DMA2_Stream3_IRQHandler(void)
   /* USER CODE END DMA2_Stream3_IRQn 1 */
 }
 
+/**
+  * @brief This function handles CAN2 RX0 interrupts.
+  */
+void CAN2_RX0_IRQHandler(void)
+{
+  /* USER CODE BEGIN CAN2_RX0_IRQn 0 */
+
+  /* USER CODE END CAN2_RX0_IRQn 0 */
+  HAL_CAN_IRQHandler(&hcan2);
+  /* USER CODE BEGIN CAN2_RX0_IRQn 1 */
+
+  /* USER CODE END CAN2_RX0_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CAN_RxHeader, CAN_RxData);
+	CAN_RX_Flag = FLAG_SET;
+
+	if(CAN_First_Msg == FLAG_RESET) {
+		CAN_First_Msg = FLAG_SET;
+	}
+}
+
+// Set the reset RTC flag on the rising edge of the jumper flight input pin
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if(GPIO_Pin == jmp_flight.GPIO_Pin) {
+		rtc_reset = FLAG_SET;
+	}
+}
+
+
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 	// Pull CS pin high to deselect the device
     if (hspi->Instance == SPI1) {
@@ -291,7 +337,7 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	uart2_rec_flag = 0x01;
+	uart2_rec_flag = FLAG_SET;
 	HAL_UART_Receive_IT(&huart2, UARTRxData, 2);
 }
 /* USER CODE END 1 */
