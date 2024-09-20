@@ -742,6 +742,7 @@ void clean_data_buffer(uint16_t array_size, uint8_t data_array[array_size]) {
     }
 }
 
+
 void systemInit() {
 	i2c_accel = &hi2c3;
 	i2c_bme280 = &hi2c1;
@@ -776,6 +777,7 @@ void systemInit() {
 
 	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
 	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+	// int next_blank_page1 = 0;
 
 	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
 	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
