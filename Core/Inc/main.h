@@ -140,6 +140,7 @@ void handleCAN();
 void handleUART();
 uint8_t decodeASCII(uint8_t asciiVal);
 uint8_t combine_system_status();
+uint32_t find_next_blank_page_all();
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

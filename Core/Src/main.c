@@ -80,7 +80,6 @@ uint8_t buffer_ref;
 uint32_t next_blank_page;
 uint16_t byte_tracker;
 GPIO_PinState end_of_flash;
-GPIO_PinState *end_of_flash_ptr;
 
 GPIO_Config led_orange;
 GPIO_Config led_green;
@@ -231,8 +230,11 @@ int main(void)
 	  }
 
 	  if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+		if(end_of_flash == GPIO_PIN_RESET) {
 		  // TODO - Error Handle if SPI1 not found
-		  next_blank_page = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+		  next_blank_page = find_next_blank_page_all();
+		}
+
 	  }
   }
   /* USER CODE END 3 */
@@ -775,16 +777,13 @@ void systemInit() {
 	software_reset(&hspi1, cs_spi1);
 	software_reset(&hspi2, cs_spi2);
 
-	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
-	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
-	// int next_blank_page1 = 0;
+	end_of_flash = GPIO_PIN_RESET;
 
 	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
-	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+	next_blank_page = find_next_blank_page_all();
 
 	buffer_ref = 0;
 	byte_tracker = 0;
-	end_of_flash = FLAG_RESET;
 	uart2_rec_flag = FLAG_RESET;
 	CAN_RX_Flag = FLAG_RESET;
 	tim6_overflow_flag = FLAG_RESET;
@@ -870,21 +869,21 @@ void handleUART() {
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
 			eraseFlashSPI(&hspi2, huart, cs_spi2);
 		}
-		int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
-		int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
 
 		// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
-		next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+		next_blank_page = find_next_blank_page_all();
 		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin,GPIO_PIN_RESET);	// Deactivate the "write out" LED
 	}
 
 	// Read data from specified flash chip (data_rx[0] = "r")
 	else if (UARTRxData[0] == 0x72) {
+		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin,GPIO_PIN_SET);
 		if(decodeASCII(UARTRxData[1]) == 0) {
 			readFlashToUART(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
 			readFlashToUART(&hspi2, huart, cs_spi2);
 		}
+		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin,GPIO_PIN_RESET);
 	}
 
 	// Read Manufacturer over SPI (data_rx[0] = "m")
@@ -990,6 +989,16 @@ void configureCAN() {
 	canFilterConfig.SlaveStartFilterBank = 0;
 
 	HAL_CAN_ConfigFilter(&hcan2, &canFilterConfig);
+}
+
+uint32_t find_next_blank_page_all() {
+	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+//	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+	int next_blank_page1= 0;
+	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
+	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+
+	return next_blank_page;
 }
 
 
