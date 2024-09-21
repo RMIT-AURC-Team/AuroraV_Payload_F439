@@ -33,8 +33,8 @@ HAL_StatusTypeDef init_accel(I2C_HandleTypeDef* hi2c) {
 	// Set to 200G right justified
 	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &DATA_FORMAT_REG, RIGHT_JUST);
 
-	// Set to 1kHz ODR
-	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &BW_RATE_REG, MASK_1kHz);
+	// Set to 200Hz ODR
+	ret = i2c_write_reg(hi2c, ADXL314_ADDR, &BW_RATE_REG, MASK_200Hz);
 
 	// Write the offset registers
 	ret = writeOffset(hi2c);

@@ -414,7 +414,7 @@ Disassembly of section .text:
  8000596:	f000 fa34 	bl	8000a02 <i2c_write_reg>
  800059a:	7829      	ldrb	r1, [r5, #0]
  800059c:	4a0a      	ldr	r2, [pc, #40]	@ (80005c8 <init_accel+0x4c>)
- 800059e:	230a      	movs	r3, #10
+ 800059e:	230b      	movs	r3, #11
  80005a0:	4620      	mov	r0, r4
  80005a2:	f000 fa2e 	bl	8000a02 <i2c_write_reg>
  80005a6:	4620      	mov	r0, r4
@@ -1714,7 +1714,7 @@ Disassembly of section .text:
  80012c0:	e9cd 0009 	strd	r0, r0, [sp, #36]	@ 0x24
  80012c4:	e9c7 c300 	strd	ip, r3, [r7]
  80012c8:	61b8      	str	r0, [r7, #24]
- 80012ca:	2350      	movs	r3, #80	@ 0x50
+ 80012ca:	2328      	movs	r3, #40	@ 0x28
  80012cc:	4638      	mov	r0, r7
  80012ce:	60fb      	str	r3, [r7, #12]
  80012d0:	f003 fd58 	bl	8004d84 <HAL_TIM_Base_Init>
