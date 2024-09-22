@@ -26,14 +26,14 @@ enum FlightState {
 #pragma pack(push, 1) // Ensure no padding
 typedef struct {
     uint16_t timestamp;
-    int16_t x_accel;
-    int16_t y_accel;
-    int16_t z_accel;
+    uint16_t x_accel;
+    uint16_t y_accel;
+    uint16_t z_accel;
     uint16_t pressure0;
-    int16_t temperature0;
+    uint16_t temperature0;
     uint16_t humidity0;
     uint16_t pressure1;
-    int16_t temperature1;
+    uint16_t temperature1;
     uint16_t humidity1;
     uint8_t status_byte; // Byte 20
 } RawRecord;

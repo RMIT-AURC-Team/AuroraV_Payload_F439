@@ -32,7 +32,7 @@ int read_BME280_calib(uint8_t* rawData, BME280_CalibData * calib) {
   return 1; // Success
 }
 
-BME280_TempData compensate_T(int32_t adc_T, uint16_t dig_T1, int16_t dig_T2, int16_t dig_T3) {
+BME280_TempData compensate_T(uint32_t adc_T, uint16_t dig_T1, int16_t dig_T2, int16_t dig_T3) {
   BME280_TempData tempData;
   
   double var1, var2;
@@ -45,7 +45,7 @@ BME280_TempData compensate_T(int32_t adc_T, uint16_t dig_T1, int16_t dig_T2, int
 }
 
 double compensate_P(
-  int32_t t_fine, int32_t adc_P, uint16_t dig_P1, int16_t dig_P2, int16_t dig_P3, int16_t dig_P4, int16_t dig_P5, int16_t dig_P6, 
+  int32_t t_fine, uint32_t adc_P, uint16_t dig_P1, int16_t dig_P2, int16_t dig_P3, int16_t dig_P4, int16_t dig_P5, int16_t dig_P6, 
   int16_t dig_P7, int16_t dig_P8, int16_t dig_P9
 ) {
   double var1, var2, p;
