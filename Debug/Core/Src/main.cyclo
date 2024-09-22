@@ -14,10 +14,10 @@
 ../Core/Src/main.c:741:6:clean_data_buffer	2
 ../Core/Src/main.c:748:6:systemInit	2
 ../Core/Src/main.c:807:6:gpio_set_config	1
-../Core/Src/main.c:825:6:handleCAN	6
-../Core/Src/main.c:854:6:handleUART	23
-../Core/Src/main.c:952:9:decodeASCII	3
-../Core/Src/main.c:960:9:combine_system_status	1
-../Core/Src/main.c:975:6:configureCAN	1
-../Core/Src/main.c:992:10:find_next_blank_page_all	1
-../Core/Src/main.c:1009:6:Error_Handler	1
+../Core/Src/main.c:825:6:handleCAN	7
+../Core/Src/main.c:860:6:handleUART	23
+../Core/Src/main.c:960:9:decodeASCII	3
+../Core/Src/main.c:968:9:combine_system_status	1
+../Core/Src/main.c:983:6:configureCAN	1
+../Core/Src/main.c:1000:10:find_next_blank_page_all	1
+../Core/Src/main.c:1017:6:Error_Handler	1

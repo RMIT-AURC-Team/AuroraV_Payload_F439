@@ -1,5 +1,5 @@
 # https://github.com/github/gitignore/blob/master/C.gitignore
-
+__pycache__/
 # Prerequisites
 *.d
 
@@ -190,3 +190,4 @@ graphs/
 # !my_customized_scatter_file.sct
 
 .ipynb_checkpoints/
+lib/

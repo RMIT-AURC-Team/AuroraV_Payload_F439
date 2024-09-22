@@ -188,7 +188,7 @@ int main(void)
 		  }
 
 		  handleCAN();
-		  HAL_GPIO_TogglePin(led_green.GPIOx, led_green.GPIO_Pin);
+//		  HAL_GPIO_TogglePin(led_green.GPIOx, led_green.GPIO_Pin);
 		  CAN_RX_Flag = FLAG_RESET;
 	  }
 
@@ -589,7 +589,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 20999;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 4000;
+  htim7.Init.Period = 2000;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -845,7 +845,13 @@ void handleCAN() {
 		sendCAN_TxMessage(&hcan2, 6, accel_data, &CAN_TxMailbox, TX_ACCEL);
 	}
 
-	// Transmit values from accelerometer
+	// Transmit status code and flight state
+	else if(CAN_RxHeader.StdId == TX_STATUS) {
+		uint8_t combState = combine_system_status();
+		sendCAN_TxMessage(&hcan2, 1, &combState, &CAN_TxMailbox, TX_STATUS);
+	}
+
+	// Transmit "confirmation" of dummy over UART
 	else if(CAN_RxHeader.StdId == DUMMY_ID) {
 		send_uart_hex(&huart2, sysStatus);
 	}
@@ -993,8 +999,8 @@ void configureCAN() {
 
 uint32_t find_next_blank_page_all() {
 	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
-//	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
-	int next_blank_page1= 0;
+	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+//	int next_blank_page1= 0;
 	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
 	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
 
