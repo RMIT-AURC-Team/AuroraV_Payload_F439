@@ -97,6 +97,7 @@ extern Flag_State rtc_reset;
 
 extern uint8_t sysStatus;
 extern Flight_State flight_state;
+extern uint8_t i2c_offline_cnt;
 
 /* USER CODE END EC */
 
@@ -130,6 +131,8 @@ void Error_Handler(void);
 #define LED1_GPIO_Port GPIOB
 #define LED2_Pin GPIO_PIN_14
 #define LED2_GPIO_Port GPIOB
+
+#define I2C_OFFLINE_THRESH		3
 
 /* USER CODE BEGIN Private defines */
 void clean_data_buffer(uint16_t array_size, uint8_t data_array[array_size]);

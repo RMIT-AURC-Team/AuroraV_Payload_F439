@@ -93,6 +93,7 @@ Flag_State rtc_reset;
 
 uint8_t sysStatus;
 Flight_State flight_state;
+uint8_t i2c_offline_cnt;
 
 /* USER CODE END PV */
 
@@ -198,11 +199,28 @@ int main(void)
 
 		  if(sysStatus == 0x00) {
 			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_SET);	// Turn LED off
+			  i2c_offline_cnt = FLAG_RESET;
 		  } else {
 			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_RESET);
+			  i2c_offline_cnt = i2c_offline_cnt + 1;
 		  }
 
 		  tim7_overflow_flag = FLAG_RESET;
+	  }
+
+	  // Attempt to reset the I2C bus to bring the sensors back online
+	  if(i2c_offline_cnt > I2C_OFFLINE_THRESH) {
+		  if((sysStatus & 0x04) == 0x04) {
+			  HAL_I2C_DeInit(i2c_accel); // Deinitialize the I2C bus
+			  HAL_I2C_Init(i2c_accel);   // Reinitialize the I2C bus
+		  }
+
+		  if ((sysStatus >> 3) > 0) {
+			  HAL_I2C_DeInit(i2c_bme280); // Deinitialize the I2C bus
+			  HAL_I2C_Init(i2c_bme280);   // Reinitialize the I2C bus
+		  }
+
+		  i2c_offline_cnt = 0;
 	  }
 
 	  // Handle Timer 6 overflow flag
@@ -790,6 +808,7 @@ void systemInit() {
 	tim7_overflow_flag = FLAG_RESET;
 	flight_state = GROUND;
 	rtc_reset = FLAG_RESET;
+	i2c_offline_cnt = FLAG_RESET;
 
 	sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
 
