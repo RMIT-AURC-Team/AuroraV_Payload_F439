@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "BME280_comp.h"
 

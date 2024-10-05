@@ -150,7 +150,41 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    FILE *csv_fp = fopen("graphs/output.csv", "w");
+
+    // Define the output directory
+    const char *output_dir = "output"; 
+    // Prepare output CSV file name
+    char output_filename[256];
+
+    // Get the base name from the input filename (strip path)
+    const char *base_name = strrchr(input_filename, '/'); 
+    if (base_name) {
+        base_name++; // Move past the '/'
+    } else {
+        base_name = input_filename; // No path, use the whole filename
+    }
+
+    // Strip the extension and add .csv
+    char *temp_filename = strdup(base_name); // Duplicate the base filename for strtok
+    if (!temp_filename) {
+        perror("Failed to duplicate input filename");
+        return EXIT_FAILURE;
+    }
+
+    char *filename_without_ext = strtok(temp_filename, "."); 
+    if (filename_without_ext == NULL) {
+        fprintf(stderr, "Invalid input filename format\n");
+        free(temp_filename);
+        return EXIT_FAILURE;
+    }
+
+    // Generate the output file name
+    snprintf(output_filename, sizeof(output_filename), "%s/%s.csv", output_dir, filename_without_ext);
+    free(temp_filename); // Free the duplicated string
+
+
+    // Open the output file
+    FILE *csv_fp = fopen(output_filename, "w");
     if (!csv_fp) {
         perror("Failed to open CSV file");
         fclose(bin_fp);
