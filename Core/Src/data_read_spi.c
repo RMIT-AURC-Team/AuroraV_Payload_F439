@@ -31,7 +31,9 @@ uint32_t find_next_blank_page(SPI_HandleTypeDef *hspi, GPIO_PinState *end_of_fla
 	}
 
 	if (page_address == (NUM_OF_PAGES * PAGE_SIZE)) {
-		*end_of_flash_ptr = GPIO_PIN_RESET;
+		if(*end_of_flash_ptr == GPIO_PIN_RESET) {
+			*end_of_flash_ptr = GPIO_PIN_SET;
+		}
 	}
 	return page_address;
 }

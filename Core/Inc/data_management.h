@@ -12,7 +12,7 @@
 #include "gpio_struct.h"
 
 #define PAGE_SIZE 		256 			// 2048 bits
-#define NUM_OF_PAGES 	65536
+#define NUM_OF_PAGES 	65535
 #define BLOCK_32K		256000
 #define READ_SIZE		21
 #define BSY_TIMEOUT_MS	5

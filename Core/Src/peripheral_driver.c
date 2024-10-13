@@ -58,23 +58,20 @@ void eraseFlashSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Conf
 	}
 }
 
-void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config config) {
+void readFlashToUART(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config chip_select) {
 	uint32_t num_of_pages = next_blank_page;
 	if(num_of_pages == 0) {
 		num_of_pages = PAGE_SIZE;
 	}
 	num_of_pages = num_of_pages/PAGE_SIZE;
 	uint32_t address = 0;
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_SET);		// Activate the "write out" LED
 
 	for (int i = 0; i < (num_of_pages); i++) {
 		uint8_t page[PAGE_SIZE];
-		read_page_spi(page, hspi, address, config);
+		read_page_spi(page, hspi, address, chip_select);
 		uart_transmit_page(huart, page);						// Transmit the data//
 		address += PAGE_SIZE;
 	}
-
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,GPIO_PIN_RESET);	// Deactivate the "write out" LED
 }
 
 void readFlashManuSPI(SPI_HandleTypeDef *hspi, UART_HandleTypeDef *huart, GPIO_Config config) {

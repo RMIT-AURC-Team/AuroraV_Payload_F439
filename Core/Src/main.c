@@ -80,7 +80,6 @@ uint8_t buffer_ref;
 uint32_t next_blank_page;
 uint16_t byte_tracker;
 GPIO_PinState end_of_flash;
-GPIO_PinState *end_of_flash_ptr;
 
 GPIO_Config led_orange;
 GPIO_Config led_green;
@@ -94,6 +93,7 @@ Flag_State rtc_reset;
 
 uint8_t sysStatus;
 Flight_State flight_state;
+uint8_t i2c_offline_cnt;
 
 /* USER CODE END PV */
 
@@ -189,7 +189,7 @@ int main(void)
 		  }
 
 		  handleCAN();
-		  HAL_GPIO_TogglePin(led_green.GPIOx, led_green.GPIO_Pin);
+//		  HAL_GPIO_TogglePin(led_green.GPIOx, led_green.GPIO_Pin);
 		  CAN_RX_Flag = FLAG_RESET;
 	  }
 
@@ -199,11 +199,28 @@ int main(void)
 
 		  if(sysStatus == 0x00) {
 			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_SET);	// Turn LED off
+			  i2c_offline_cnt = FLAG_RESET;
 		  } else {
 			  HAL_GPIO_WritePin(status_led.GPIOx, status_led.GPIO_Pin, GPIO_PIN_RESET);
+			  i2c_offline_cnt = i2c_offline_cnt + 1;
 		  }
 
 		  tim7_overflow_flag = FLAG_RESET;
+	  }
+
+	  // Attempt to reset the I2C bus to bring the sensors back online
+	  if(i2c_offline_cnt > I2C_OFFLINE_THRESH) {
+		  if((sysStatus & 0x04) == 0x04) {
+			  HAL_I2C_DeInit(i2c_accel); // Deinitialize the I2C bus
+			  HAL_I2C_Init(i2c_accel);   // Reinitialize the I2C bus
+		  }
+
+		  if ((sysStatus >> 3) > 0) {
+			  HAL_I2C_DeInit(i2c_bme280); // Deinitialize the I2C bus
+			  HAL_I2C_Init(i2c_bme280);   // Reinitialize the I2C bus
+		  }
+
+		  i2c_offline_cnt = 0;
 	  }
 
 	  // Handle Timer 6 overflow flag
@@ -231,8 +248,11 @@ int main(void)
 	  }
 
 	  if(next_blank_page == (NUM_OF_PAGES*PAGE_SIZE)) {
+		if(end_of_flash == GPIO_PIN_RESET) {
 		  // TODO - Error Handle if SPI1 not found
-		  next_blank_page = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+		  next_blank_page = find_next_blank_page_all();
+		}
+
 	  }
   }
   /* USER CODE END 3 */
@@ -549,7 +569,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 20999;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 80;
+  htim6.Init.Period = 40;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -587,7 +607,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 20999;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 4000;
+  htim7.Init.Period = 2000;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -621,7 +641,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 921600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -742,6 +762,7 @@ void clean_data_buffer(uint16_t array_size, uint8_t data_array[array_size]) {
     }
 }
 
+
 void systemInit() {
 	i2c_accel = &hi2c3;
 	i2c_bme280 = &hi2c1;
@@ -774,21 +795,20 @@ void systemInit() {
 	software_reset(&hspi1, cs_spi1);
 	software_reset(&hspi2, cs_spi2);
 
-	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
-	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+	end_of_flash = GPIO_PIN_RESET;
 
 	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
-	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+	next_blank_page = find_next_blank_page_all();
 
 	buffer_ref = 0;
 	byte_tracker = 0;
-	end_of_flash = FLAG_RESET;
 	uart2_rec_flag = FLAG_RESET;
 	CAN_RX_Flag = FLAG_RESET;
 	tim6_overflow_flag = FLAG_RESET;
 	tim7_overflow_flag = FLAG_RESET;
 	flight_state = GROUND;
 	rtc_reset = FLAG_RESET;
+	i2c_offline_cnt = FLAG_RESET;
 
 	sysStatus = systemStatus(&hspi1, &hspi2, i2c_bme280, i2c_accel);
 
@@ -844,7 +864,13 @@ void handleCAN() {
 		sendCAN_TxMessage(&hcan2, 6, accel_data, &CAN_TxMailbox, TX_ACCEL);
 	}
 
-	// Transmit values from accelerometer
+	// Transmit status code and flight state
+	else if(CAN_RxHeader.StdId == TX_STATUS) {
+		uint8_t combState = combine_system_status();
+		sendCAN_TxMessage(&hcan2, 1, &combState, &CAN_TxMailbox, TX_STATUS);
+	}
+
+	// Transmit "confirmation" of dummy over UART
 	else if(CAN_RxHeader.StdId == DUMMY_ID) {
 		send_uart_hex(&huart2, sysStatus);
 	}
@@ -868,21 +894,21 @@ void handleUART() {
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
 			eraseFlashSPI(&hspi2, huart, cs_spi2);
 		}
-		int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
-		int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
 
 		// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
-		next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+		next_blank_page = find_next_blank_page_all();
 		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin,GPIO_PIN_RESET);	// Deactivate the "write out" LED
 	}
 
 	// Read data from specified flash chip (data_rx[0] = "r")
 	else if (UARTRxData[0] == 0x72) {
+		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin,GPIO_PIN_SET);
 		if(decodeASCII(UARTRxData[1]) == 0) {
 			readFlashToUART(&hspi1, huart, cs_spi1);
 		} else if (decodeASCII(UARTRxData[1]) == 1) {
 			readFlashToUART(&hspi2, huart, cs_spi2);
 		}
+		HAL_GPIO_WritePin(led_green.GPIOx, led_green.GPIO_Pin,GPIO_PIN_RESET);
 	}
 
 	// Read Manufacturer over SPI (data_rx[0] = "m")
@@ -988,6 +1014,16 @@ void configureCAN() {
 	canFilterConfig.SlaveStartFilterBank = 0;
 
 	HAL_CAN_ConfigFilter(&hcan2, &canFilterConfig);
+}
+
+uint32_t find_next_blank_page_all() {
+	int next_blank_page0 = find_next_blank_page(&hspi1, &end_of_flash, cs_spi1);
+	int next_blank_page1 = find_next_blank_page(&hspi2, &end_of_flash, cs_spi2);
+//	int next_blank_page1= 0;
+	// Assign the value of next_blank_page to the larger of next_blank_page0 and next_blank_page1
+	next_blank_page = (next_blank_page0 > next_blank_page1) ? next_blank_page0 : next_blank_page1;
+
+	return next_blank_page;
 }
 
 

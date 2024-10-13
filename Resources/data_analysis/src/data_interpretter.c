@@ -150,7 +150,41 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    FILE *csv_fp = fopen("graphs/output.csv", "w");
+
+    // Define the output directory
+    const char *output_dir = "output"; 
+    // Prepare output CSV file name
+    char output_filename[256];
+
+    // Get the base name from the input filename (strip path)
+    const char *base_name = strrchr(input_filename, '/'); 
+    if (base_name) {
+        base_name++; // Move past the '/'
+    } else {
+        base_name = input_filename; // No path, use the whole filename
+    }
+
+    // Strip the extension and add .csv
+    char *temp_filename = strdup(base_name); // Duplicate the base filename for strtok
+    if (!temp_filename) {
+        perror("Failed to duplicate input filename");
+        return EXIT_FAILURE;
+    }
+
+    char *filename_without_ext = strtok(temp_filename, "."); 
+    if (filename_without_ext == NULL) {
+        fprintf(stderr, "Invalid input filename format\n");
+        free(temp_filename);
+        return EXIT_FAILURE;
+    }
+
+    // Generate the output file name
+    snprintf(output_filename, sizeof(output_filename), "%s/%s.csv", output_dir, filename_without_ext);
+    free(temp_filename); // Free the duplicated string
+
+
+    // Open the output file
+    FILE *csv_fp = fopen(output_filename, "w");
     if (!csv_fp) {
         perror("Failed to open CSV file");
         fclose(bin_fp);
@@ -177,6 +211,36 @@ int main(int argc, char *argv[]) {
 
     fclose(bin_fp);
     fclose(csv_fp);
+
+    // Open the file in write mode (creates if doesn't exist, overwrites if exists)
+    FILE *file = fopen("sensor_calibration/bme280_calib.csv", "w");
+    if (file == NULL) {
+        perror("Unable to open the file");
+        return EXIT_FAILURE;
+    }
+
+    // Write the CSV header
+    fprintf(file, "sensor,dig_T1,dig_T2,dig_T3,dig_P1,dig_P2,dig_P3,dig_P4,dig_P5,dig_P6,dig_P7,dig_P8,dig_P9,dig_H1,dig_H2,dig_H3,dig_H4,dig_H5,dig_H6\n");
+
+    // Write the calibration data values to the file
+    fprintf(file, "%u, %u,%d,%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%u,%d,%u,%d,%d,%d\n",
+            0, calib0.dig_T1, calib0.dig_T2, calib0.dig_T3,
+            calib0.dig_P1, calib0.dig_P2, calib0.dig_P3,
+            calib0.dig_P4, calib0.dig_P5, calib0.dig_P6,
+            calib0.dig_P7, calib0.dig_P8, calib0.dig_P9,
+            calib0.dig_H1, calib0.dig_H2, calib0.dig_H3,
+            calib0.dig_H4, calib0.dig_H5, calib0.dig_H6);
+
+    fprintf(file, "%u, %u,%d,%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%u,%d,%u,%d,%d,%d\n",
+            1, calib1.dig_T1, calib1.dig_T2, calib1.dig_T3,
+            calib1.dig_P1, calib1.dig_P2, calib1.dig_P3,
+            calib1.dig_P4, calib1.dig_P5, calib1.dig_P6,
+            calib1.dig_P7, calib1.dig_P8, calib1.dig_P9,
+            calib1.dig_H1, calib1.dig_H2, calib1.dig_H3,
+            calib1.dig_H4, calib1.dig_H5, calib1.dig_H6);
+
+    // Close the file
+    fclose(file);
 
     return EXIT_SUCCESS;
 }
