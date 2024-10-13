@@ -35,10 +35,11 @@ typedef struct {
 int read_BME280_calib(uint8_t* rawData, BME280_CalibData * calib);
 
 // Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
-BME280_TempData compensate_T(int32_t adc_T, uint16_t dig_T1, int16_t dig_T2, int16_t dig_T3);
+BME280_TempData compensate_T(uint32_t adc_T, uint16_t dig_T1, int16_t dig_T2, int16_t dig_T3);
+
 // Returns pressure in Pa as double. Output value of “96386.2” equals 96386.2 Pa = 963.862 hPa
 double compensate_P(
-  int32_t t_fine, int32_t adc_P,
+  int32_t t_fine, uint32_t adc_P,
   uint16_t dig_P1, int16_t dig_P2, int16_t dig_P3, 
   int16_t dig_P4, int16_t dig_P5, int16_t dig_P6, 
   int16_t dig_P7, int16_t dig_P8, int16_t dig_P9

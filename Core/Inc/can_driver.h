@@ -15,6 +15,7 @@
 #define TX_BME280_0			0x501
 #define TX_BME280_1			0x502
 #define TX_ACCEL			0x503
+#define TX_STATUS			0x504
 #define DUMMY_ID			0x700
 
 void sendCAN_TxMessage(CAN_HandleTypeDef *hcan, uint8_t dataSize, uint8_t TxData[dataSize], uint32_t *CAN_TxMailbox, uint16_t payload_id);
