@@ -20,4 +20,4 @@
 ../Core/Src/main.c:987:9:combine_system_status	1
 ../Core/Src/main.c:1002:6:configureCAN	1
 ../Core/Src/main.c:1019:10:find_next_blank_page_all	1
-../Core/Src/main.c:1036:6:Error_Handler	1
+../Core/Src/main.c:1037:6:Error_Handler	1
